@@ -1,9 +1,12 @@
 package models
 
 import (
+	"fmt"
 	models "metalab/drinks-pos/models/sumup"
+	"time"
 
 	"github.com/google/uuid"
+	"golang.org/x/crypto/bcrypt"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
@@ -23,8 +26,14 @@ func ConnectDatabase() {
 	database.AutoMigrate(&Purchase{})
 	database.AutoMigrate(&models.Reader{})
 
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(""), bcrypt.DefaultCost)
+	if err != nil {
+		fmt.Println("Error generating password hash: ", err)
+		return
+	}
+
 	if database.Limit(1).Find(&User{Name: "guest"}).RowsAffected == 0 {
-		database.Create(&User{UserID: uuid.Nil, Name: "guest", IsTrusted: false})
+		database.Create(&User{UserID: uuid.Nil, Name: "guest", Password: string(hashedPassword), IsTrusted: false, UsedAt: time.Now().Local()})
 	}
 
 	DB = database
