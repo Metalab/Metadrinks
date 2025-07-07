@@ -3,6 +3,7 @@ package models
 import (
 	"fmt"
 	models "metalab/drinks-pos/models/sumup"
+	"os"
 	"time"
 
 	"github.com/google/uuid"
@@ -14,7 +15,7 @@ import (
 var DB *gorm.DB
 
 func ConnectDatabase() {
-	dsn := "host=localhost user=backend password=backend-pw dbname=drinks port=5432 sslmode=disable timezone=Europe/Vienna"
+	dsn := "host=" + os.Getenv("DB_HOST") + " user=" + os.Getenv("DB_USER") + " password=" + os.Getenv("DB_PASSWORD") + " dbname=" + os.Getenv("DB_DATABASE") + " port=" + os.Getenv("DB_PORT") + " sslmode=disable timezone=" + os.Getenv("DB_TIMEZONE")
 	database, err := gorm.Open(postgres.Open(dsn), &gorm.Config{}) // change the database provider if necessary
 
 	if err != nil {

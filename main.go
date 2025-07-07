@@ -11,13 +11,26 @@ import (
 	jwt "github.com/appleboy/gin-jwt/v2"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
+	"github.com/joho/godotenv"
 )
 
 func main() {
+	err := godotenv.Load()
+	if err != nil {
+		log.Fatal("Error loading .env file")
+	}
+
 	enforcedVars := []string{
 		"SUMUP_API_KEY",
 		"SUMUP_RETURN_URL",
 		"JWT_SECRET",
+		"GIN_TRUSTED_PROXIES",
+		"DB_HOST",
+		"DB_USER",
+		"DB_PASSWORD",
+		"DB_DATABASE",
+		"DB_PORT",
+		"DB_TIMEZONE",
 	}
 	for _, v := range enforcedVars {
 		if os.Getenv(v) == "" {
@@ -32,7 +45,7 @@ func main() {
 	corsConfig.AddAllowHeaders("Authorization")
 	router.Use(cors.New(corsConfig))
 
-	trustedProxies := strings.Split(os.Getenv("GIN_TRUSTEDPROXIES"), ",")
+	trustedProxies := strings.Split(os.Getenv("GIN_TRUSTED_PROXIES"), ",")
 	router.SetTrustedProxies(trustedProxies)
 
 	models.ConnectDatabase()

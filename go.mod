@@ -11,6 +11,7 @@ require (
 
 require (
 	github.com/golang-jwt/jwt/v4 v4.5.2 // indirect
+	github.com/joho/godotenv v1.5.1 // indirect
 	github.com/youmark/pkcs8 v0.0.0-20240726163527-a2c0da244d78 // indirect
 	golang.org/x/oauth2 v0.26.0 // indirect
 )
