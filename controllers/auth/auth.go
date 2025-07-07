@@ -95,10 +95,7 @@ func authenticator() func(c *gin.Context) (any, error) {
 
 func authorize() func(data any, c *gin.Context) bool {
 	return func(data any, c *gin.Context) bool {
-		if v, ok := data.(*models.User); ok && v.IsAdmin == true {
-			return true
-		}
-		return false
+		return jwt.ExtractClaims(c)["admin"].(bool)
 	}
 }
 
