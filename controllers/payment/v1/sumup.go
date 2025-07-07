@@ -50,8 +50,8 @@ func CreateReader(c *gin.Context) {
 }
 
 func FindReaders(c *gin.Context) {
-	var readers []sumupmodels.Reader
-	err := models.DB.Find(&readers).Error
+	var r []sumupmodels.Reader
+	err := models.DB.Find(&r).Error
 
 	if err != nil {
 		fmt.Printf("error finding readers: %s\n", err.Error())
@@ -59,7 +59,7 @@ func FindReaders(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"data": readers})
+	c.JSON(http.StatusOK, gin.H{"data": r})
 }
 
 func FindApiReaders(c *gin.Context) {
