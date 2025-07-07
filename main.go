@@ -1,14 +1,15 @@
 package main
 
 import (
-	"log"
-	"metalab/drinks-pos/controllers"
+	"metalab/drinks-pos/controllers/api"
+	"metalab/drinks-pos/controllers/auth"
+	_ "metalab/drinks-pos/controllers/auth"
+	"metalab/drinks-pos/controllers/payment"
 	"metalab/drinks-pos/libs"
 	"metalab/drinks-pos/models"
 	"os"
 	"strings"
 
-	jwt "github.com/appleboy/gin-jwt/v2"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 )
@@ -16,8 +17,8 @@ import (
 func main() {
 	enforcedVars := []string{
 		"SUMUP_API_KEY",
-		"SUMUP_RETURN_URL",
-		"JWT_SECRET",
+		//"SUMUP_RETURN_URL",
+		//"JWT_SECRET",
 	}
 	for _, v := range enforcedVars {
 		if os.Getenv(v) == "" {
@@ -41,33 +42,15 @@ func main() {
 	libs.InitAPIReaders()
 
 	// auth shit
-	authMiddleware, err := jwt.New(controllers.InitParams())
-	if err != nil {
-		log.Fatal("JWT Error:" + err.Error())
-	}
-	router.Use(controllers.HandlerMiddleware(authMiddleware))
-	controllers.RegisterRoute(router, authMiddleware)
+
 	// auth shit end
 
-	router.POST("/api/items", controllers.CreateItem)
-	router.GET("/api/items", controllers.FindItems)
-	router.GET("/api/items/:id", controllers.FindItem)
-	router.PATCH("/api/items/:id", controllers.UpdateItem)
-	router.DELETE("/api/items/:id", controllers.DeleteItem)
+	api.RegisterRoutesAPI(router.Group("/api"))
+	auth.RegisterRoutesAuth(router)
+	payment.RegisterRoutesPayment(router.Group("/payment"))
 
-	router.POST("/api/purchases", controllers.CreatePurchase)
-	router.GET("/api/purchases", controllers.FindPurchases)
-	router.GET("/api/purchases/:id", controllers.FindPurchase)
-	//router.PATCH("/api/purchases/:id", controllers.UpdatePurchase)
-	//router.DELETE("/api/purchases/:id", controllers.DeletePurchase)
-
-	router.POST("/api/users", controllers.CreateUser)
-	router.GET("/api/users", controllers.FindUsers)
-	router.GET("/api/users/:id", controllers.FindUser)
-	router.PATCH("/api/users", controllers.UpdateUser)
-	router.DELETE("/api/users", controllers.DeleteUser)
-
-	router.POST("/api/payments/callback", controllers.GetIncomingWebhook)
-
-	router.Run("0.0.0.0:8080")
+	err := router.Run("0.0.0.0:8080")
+	if err != nil {
+		return
+	}
 }

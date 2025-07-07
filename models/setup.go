@@ -14,7 +14,7 @@ import (
 var DB *gorm.DB
 
 func ConnectDatabase() {
-	dsn := "host=localhost user=backend password=backend-pw dbname=drinks port=5432 sslmode=disable timezone=Europe/Vienna"
+	dsn := "host=localhost user=backend password=backend-pw dbname=drinks port=15432 sslmode=disable timezone=Europe/Vienna"
 	database, err := gorm.Open(postgres.Open(dsn), &gorm.Config{}) // change the database provider if necessary
 
 	if err != nil {
