@@ -1,7 +1,8 @@
-package controllers
+package auth
 
 import (
 	"log"
+	"metalab/drinks-pos/controllers/api/v1"
 	"metalab/drinks-pos/models"
 	"os"
 	"time"
@@ -13,15 +14,6 @@ import (
 type login struct {
 	Username string `form:"username" json:"username" binding:"required"`
 	Password string `form:"password" json:"password"`
-}
-
-func RegisterRoute(r *gin.Engine, handle *jwt.GinJWTMiddleware) {
-	r.POST("/login", handle.LoginHandler)
-	r.POST("/logout", handle.LogoutHandler)
-
-	auth := r.Group("/auth", handle.MiddlewareFunc())
-	auth.GET("/refresh_token", handle.RefreshHandler)
-	//auth.GET("/hello", HelloHandler)
 }
 
 func HandlerMiddleware(authMiddleware *jwt.GinJWTMiddleware) gin.HandlerFunc {
@@ -86,7 +78,7 @@ func authenticator() func(c *gin.Context) (any, error) {
 		username := loginVals.Username
 		password := loginVals.Password
 
-		user, err := TryAuthenticate(username, password)
+		user, err := v1.TryAuthenticate(username, password)
 		if err != nil {
 			log.Printf("Failed authentication for user %s: %v\n", username, err)
 			return nil, jwt.ErrFailedAuthentication
