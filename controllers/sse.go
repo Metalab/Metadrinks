@@ -17,7 +17,7 @@ type Event struct {
 
 type ClientChan chan string
 
-var Stream *Event = NewServer()
+var Stream = NewServer()
 
 func NewServer() *Event {
 	event := &Event{

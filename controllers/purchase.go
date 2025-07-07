@@ -23,10 +23,10 @@ type CreatePurchaseInput struct {
 func CreatePurchase(c *gin.Context) {
 	var input CreatePurchaseInput
 	var finalCost uint = 0
-	var client_transaction_id string = ""
-	var transaction_description []string
-	var transaction_status sumup_models.TransactionFullStatus
-	returnedItemsArray := []models.Item{}
+	var clientTransactionId = ""
+	var transactionDescription []string
+	var transactionStatus sumup_models.TransactionFullStatus
+	var returnedItemsArray []models.Item
 	var userClaims = jwt.ExtractClaims(c)
 	var userId = uuid.MustParse(userClaims["userId"].(string))
 	var userTrust = userClaims["trusted"].(bool)
@@ -40,41 +40,41 @@ func CreatePurchase(c *gin.Context) {
 		item := FindItemById(v.ItemId)
 		finalCost += item.Price
 		returnedItemsArray = append(returnedItemsArray, models.Item{ItemId: v.ItemId, Name: item.Name, Price: item.Price})
-		transaction_description = append(transaction_description, fmt.Sprintf("%s", item.Name))
+		transactionDescription = append(transactionDescription, fmt.Sprintf("%s", item.Name))
 	}
 
-	var final_transaction_description = strings.Join(transaction_description[:], ", ")
+	var finalTransactionDescription = strings.Join(transactionDescription[:], ", ")
 	switch input.PaymentType {
 	case "card":
 		var err error
-		transaction_status = sumup_models.TransactionFullStatusPending
-		client_transaction_id, err = libs.StartReaderCheckout(input.ReaderId, finalCost, &final_transaction_description)
+		transactionStatus = sumup_models.TransactionFullStatusPending
+		clientTransactionId, err = libs.StartReaderCheckout(input.ReaderId, finalCost, &finalTransactionDescription)
 		if err != nil {
 			fmt.Printf("error while creating reader checkout: %s\n", err.Error())
 			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
 	case "cash":
-		transaction_status = sumup_models.TransactionFullStatusSuccessful
+		transactionStatus = sumup_models.TransactionFullStatusSuccessful
 	case "balance":
 		if balance, err := GetUserBalance(userId); err != nil {
 			if finalCost >= math.MaxInt32 {
 				c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "final cost exceeds maximum allowed value"})
-				transaction_status = sumup_models.TransactionFullStatusFailed
+				transactionStatus = sumup_models.TransactionFullStatusFailed
 				return
 			}
 			if (int(*balance)-int(finalCost) < 0) && !userTrust {
 				c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "not enough balance"})
-				transaction_status = sumup_models.TransactionFullStatusFailed
+				transactionStatus = sumup_models.TransactionFullStatusFailed
 				return
 			} else {
-				transaction_status = sumup_models.TransactionFullStatusSuccessful
+				transactionStatus = sumup_models.TransactionFullStatusSuccessful
 				UpdateUserBalance(userId, -int(finalCost))
 			}
 		}
 	}
 
-	purchase := models.Purchase{Items: returnedItemsArray, PaymentType: models.PaymentType(input.PaymentType), ClientTransactionId: client_transaction_id, TransactionStatus: transaction_status, FinalCost: finalCost, CreatedBy: userId}
+	purchase := models.Purchase{Items: returnedItemsArray, PaymentType: models.PaymentType(input.PaymentType), ClientTransactionId: clientTransactionId, TransactionStatus: transactionStatus, FinalCost: finalCost, CreatedBy: userId}
 	models.DB.Create(&purchase)
 
 	c.JSON(http.StatusOK, gin.H{"data": purchase})

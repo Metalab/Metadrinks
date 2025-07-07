@@ -14,12 +14,12 @@ import (
 )
 
 func main() {
-	enforced_vars := []string{
+	enforcedVars := []string{
 		"SUMUP_API_KEY",
 		"SUMUP_RETURN_URL",
 		"JWT_SECRET",
 	}
-	for _, v := range enforced_vars {
+	for _, v := range enforcedVars {
 		if os.Getenv(v) == "" {
 			panic("Environment variable " + v + " is not set. Please set it before running the application.")
 		}
@@ -27,10 +27,10 @@ func main() {
 
 	router := gin.Default()
 
-	cors_config := cors.DefaultConfig()
-	cors_config.AllowAllOrigins = true
-	cors_config.AddAllowHeaders("Authorization")
-	router.Use(cors.New(cors_config))
+	corsConfig := cors.DefaultConfig()
+	corsConfig.AllowAllOrigins = true
+	corsConfig.AddAllowHeaders("Authorization")
+	router.Use(cors.New(corsConfig))
 
 	trustedProxies := strings.Split(os.Getenv("GIN_TRUSTEDPROXIES"), ",")
 	router.SetTrustedProxies(trustedProxies)

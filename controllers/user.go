@@ -24,7 +24,7 @@ func CreateUser(c *gin.Context) {
 		return
 	}
 
-	var userId uuid.UUID = uuid.New()
+	var userId = uuid.New()
 
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(input.Password), bcrypt.DefaultCost)
 	if err != nil {

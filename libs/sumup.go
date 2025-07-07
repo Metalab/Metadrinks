@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 	"metalab/drinks-pos/models"
-	sumup_models "metalab/drinks-pos/models/sumup"
+	sumupmodels "metalab/drinks-pos/models/sumup"
 	"os"
 	"time"
 
@@ -38,34 +38,34 @@ func InitAPIReaders() {
 		return
 	}
 
-	var readers []sumup_models.Reader
-	models.DB.Session(&gorm.Session{AllowGlobalUpdate: true}).Delete(&readers)
+	var r []sumupmodels.Reader
+	models.DB.Session(&gorm.Session{AllowGlobalUpdate: true}).Delete(&r)
 
-	// lookup if readers are in db by reader id, create only non added ones.
-	readers_count := 0
+	// lookup if readers are in db by reader id, create only non-added ones.
+	readersCount := 0
 	for _, v := range response.Items {
-		api_reader := sumup_models.Reader{ReaderId: sumup_models.ReaderId(v.Id), Name: sumup_models.ReaderName(v.Name), Status: sumup_models.ReaderStatus(v.Status), Device: sumup_models.ReaderDevice{Identifier: v.Device.Identifier, Model: sumup_models.ReaderDeviceModel(v.Device.Model)}, CreatedAt: v.CreatedAt, UpdatedAt: v.UpdatedAt}
-		models.DB.Create(&api_reader)
-		readers_count++
+		apiReader := sumupmodels.Reader{ReaderId: sumupmodels.ReaderId(v.Id), Name: sumupmodels.ReaderName(v.Name), Status: sumupmodels.ReaderStatus(v.Status), Device: sumupmodels.ReaderDevice{Identifier: v.Device.Identifier, Model: sumupmodels.ReaderDeviceModel(v.Device.Model)}, CreatedAt: v.CreatedAt, UpdatedAt: v.UpdatedAt}
+		models.DB.Create(&apiReader)
+		readersCount++
 	}
-	fmt.Printf("[INFO] SumUp API: Initialized %d reader(s).\n", readers_count)
+	fmt.Printf("[INFO] SumUp API: Initialized %d reader(s).\n", readersCount)
 }
 
 func StartReaderCheckout(ReaderId string, TotalAmount uint, Description *string) (ClientTransactionId string, Error error) {
-	var returnUrl string = os.Getenv("SUMUP_RETURN_URL")
-	response, checkout_err := SumupClient.Readers.CreateCheckout(context.Background(), *SumupAccount.MerchantProfile.MerchantCode, ReaderId, readers.CreateReaderCheckoutBody{Description: Description, ReturnUrl: &returnUrl, TotalAmount: readers.CreateReaderCheckoutAmount{Currency: "EUR", MinorUnit: 2, Value: int(TotalAmount)}})
-	if checkout_err != nil {
-		return "error", fmt.Errorf("Error while creating reader checkout: %s", checkout_err.Error())
+	var returnUrl = os.Getenv("SUMUP_RETURN_URL")
+	response, checkoutErr := SumupClient.Readers.CreateCheckout(context.Background(), *SumupAccount.MerchantProfile.MerchantCode, ReaderId, readers.CreateReaderCheckoutBody{Description: Description, ReturnUrl: &returnUrl, TotalAmount: readers.CreateReaderCheckoutAmount{Currency: "EUR", MinorUnit: 2, Value: int(TotalAmount)}})
+	if checkoutErr != nil {
+		return "error", fmt.Errorf("error while creating reader checkout: %s", checkoutErr.Error())
 	}
 	return *response.Data.ClientTransactionId, nil
 }
 
-func InitiallyCheckIfReaderIsReady(ReaderId string) (Result *sumup_models.Reader, Error error) {
+func InitiallyCheckIfReaderIsReady(ReaderId string) (Result *sumupmodels.Reader, Error error) {
 	readerReady := false
 	count := 5
-	seconds_between := 5
+	secondsBetween := 5
 	for i := 0; i <= count; i++ {
-		time.Sleep(time.Second * time.Duration(seconds_between))
+		time.Sleep(time.Second * time.Duration(secondsBetween))
 		//response, err := SumupClient.Readers.List(context.Background(), *SumupAccount.MerchantProfile.MerchantCode)
 		reader, err := SumupClient.Readers.Get(context.Background(), *SumupAccount.MerchantProfile.MerchantCode, readers.ReaderId(ReaderId), readers.GetReaderParams{})
 		if err != nil {
@@ -81,13 +81,13 @@ func InitiallyCheckIfReaderIsReady(ReaderId string) (Result *sumup_models.Reader
 		break
 	}
 	if readerReady {
-		edited_reader := sumup_models.Reader{Status: sumup_models.ReaderStatusPaired}
-		models.DB.Where(&sumup_models.Reader{ReaderId: sumup_models.ReaderId(ReaderId)}).Updates(edited_reader)
+		editedReader := sumupmodels.Reader{Status: sumupmodels.ReaderStatusPaired}
+		models.DB.Where(&sumupmodels.Reader{ReaderId: sumupmodels.ReaderId(ReaderId)}).Updates(editedReader)
 		fmt.Printf("[INFO] SumUp API: Reader %s is ready\n", ReaderId)
-		return &edited_reader, nil
+		return &editedReader, nil
 	}
-	fmt.Printf("[ERROR] SumUp API: Reader %s not ready after waiting %d seconds\n", ReaderId, count*seconds_between)
-	return nil, fmt.Errorf("Reader %s not ready after waiting %d seconds", ReaderId, count*seconds_between)
+	fmt.Printf("[ERROR] SumUp API: Reader %s not ready after waiting %d seconds\n", ReaderId, count*secondsBetween)
+	return nil, fmt.Errorf("reader %s not ready after waiting %d seconds", ReaderId, count*secondsBetween)
 }
 
 func CheckIfReaderIsReady(ReaderId string) (IsReady bool, Error error) {
@@ -100,8 +100,8 @@ func CheckIfReaderIsReady(ReaderId string) (IsReady bool, Error error) {
 		fmt.Printf("[INFO] SumUp API: Reader %s not ready\n", ReaderId)
 		return false, fmt.Errorf("reader not ready yet")
 	}
-	edited_reader := sumup_models.Reader{Status: sumup_models.ReaderStatusPaired}
-	models.DB.Where(&sumup_models.Reader{ReaderId: sumup_models.ReaderId(ReaderId)}).Updates(edited_reader)
+	editedReader := sumupmodels.Reader{Status: sumupmodels.ReaderStatusPaired}
+	models.DB.Where(&sumupmodels.Reader{ReaderId: sumupmodels.ReaderId(ReaderId)}).Updates(editedReader)
 	fmt.Printf("[INFO] SumUp API: Reader %s returned ready\n", ReaderId)
 	return true, nil
 }

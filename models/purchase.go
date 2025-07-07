@@ -19,7 +19,7 @@ type Purchase struct {
 	CreatedBy           uuid.UUID                          `json:"created_by"` // uuid of user, otherwise null uuid (for guests)
 }
 
-// The type of the payment object gives information about the type of payment.
+// PaymentType The type of the payment object gives information about the type of payment.
 //
 // Possible values:
 //
