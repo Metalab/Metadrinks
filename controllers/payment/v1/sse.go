@@ -3,7 +3,7 @@ package v1
 import (
 	"io"
 	"log"
-	sumup_models "metalab/drinks-pos/models/sumup"
+	sumupmodels "metalab/drinks-pos/models/sumup"
 
 	"github.com/gin-gonic/gin"
 )
@@ -72,8 +72,8 @@ const (
 )
 
 type SSENotificationTransactionUpdatePayload struct {
-	ClientTransactionId string                             `json:"client_transaction_id"`
-	TransactionStatus   sumup_models.TransactionFullStatus `json:"transaction_status"`
+	ClientTransactionId string                            `json:"client_transaction_id"`
+	TransactionStatus   sumupmodels.TransactionFullStatus `json:"transaction_status"`
 }
 
 type SSENotificationPayload struct {

@@ -4,6 +4,7 @@ import (
 	"log"
 	"metalab/drinks-pos/controllers/api/v1"
 	"metalab/drinks-pos/models"
+	"net/http"
 	"os"
 	"time"
 
@@ -11,7 +12,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-type login struct {
+type LoginForm struct {
 	Username string `form:"username" json:"username" binding:"required"`
 	Password string `form:"password" json:"password"`
 }
@@ -37,12 +38,15 @@ func InitParams() *jwt.GinJWTMiddleware {
 		PayloadFunc: payloadFunc(),
 
 		//IdentityHandler: identityHandler(),
-		Authenticator: authenticator(),
-		//Authorizator:    authorizator(),
-		Unauthorized:  unauthorized(),
-		TokenLookup:   "cookie: jwt, header: Authorization",
-		TokenHeadName: "Bearer",
-		TimeFunc:      time.Now,
+		Authenticator:  authenticator(),
+		Authorizator:   authorize(),
+		Unauthorized:   unauthorized(),
+		SendCookie:     true,
+		CookieName:     "drinks_pos_session",
+		CookieSameSite: http.SameSiteStrictMode,
+		TokenLookup:    "cookie: drinks_pos_session, header: Authorization",
+		TokenHeadName:  "Bearer",
+		TimeFunc:       time.Now,
 	}
 }
 
@@ -71,7 +75,7 @@ func payloadFunc() func(data any) jwt.MapClaims {
 
 func authenticator() func(c *gin.Context) (any, error) {
 	return func(c *gin.Context) (any, error) {
-		var loginVals login
+		var loginVals LoginForm
 		if err := c.ShouldBind(&loginVals); err != nil {
 			return "", jwt.ErrMissingLoginValues
 		}
@@ -87,14 +91,14 @@ func authenticator() func(c *gin.Context) (any, error) {
 	}
 }
 
-/*func authorizator() func(data any, c *gin.Context) bool {
+func authorize() func(data any, c *gin.Context) bool {
 	return func(data any, c *gin.Context) bool {
-		if v, ok := data.(*User); ok && v.UserName == "admin" {
+		if v, ok := data.(*models.User); ok && v.IsAdmin == true {
 			return true
 		}
 		return false
 	}
-}*/
+}
 
 func unauthorized() func(c *gin.Context, code int, message string) {
 	return func(c *gin.Context, code int, message string) {
@@ -102,14 +106,6 @@ func unauthorized() func(c *gin.Context, code int, message string) {
 			"code":    code,
 			"message": message,
 		})
-	}
-}
-
-func HandleNoRoute() func(c *gin.Context) {
-	return func(c *gin.Context) {
-		claims := jwt.ExtractClaims(c)
-		log.Printf("NoRoute claims: %#v\n", claims)
-		c.JSON(404, gin.H{"code": "PAGE_NOT_FOUND", "message": "Page not found"})
 	}
 }
 

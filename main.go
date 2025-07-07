@@ -55,10 +55,6 @@ func main() {
 	libs.Login(os.Getenv("SUMUP_API_KEY"))
 	libs.InitAPIReaders()
 
-	// auth shit
-
-	// auth shit end
-
 	api.RegisterRoutesAPI(router.Group("/api"))
 	auth.RegisterRoutesAuth(router)
 	payment.RegisterRoutesPayment(router.Group("/payment"))
