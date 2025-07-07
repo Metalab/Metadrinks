@@ -1,6 +1,7 @@
 package main
 
 import (
+	jwt "github.com/appleboy/gin-jwt/v2"
 	"log"
 	"metalab/drinks-pos/controllers/api"
 	"metalab/drinks-pos/controllers/auth"
@@ -55,8 +56,15 @@ func main() {
 	libs.Login(os.Getenv("SUMUP_API_KEY"))
 	libs.InitAPIReaders()
 
+	authMiddleware, err := jwt.New(auth.InitParams())
+	if err != nil {
+		log.Fatal("JWT Error:" + err.Error())
+	}
+	router.Use(auth.HandlerMiddleware(authMiddleware))
+	auth.JWTAuthMiddleware = authMiddleware
+
 	api.RegisterRoutesAPI(router.Group("/api"))
-	auth.RegisterRoutesAuth(router)
+	auth.RegisterRoutesAuth(router.Group("/auth"))
 	payment.RegisterRoutesPayment(router.Group("/payment"))
 
 	err = router.Run("0.0.0.0:8080")
