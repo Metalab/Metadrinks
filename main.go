@@ -1,6 +1,7 @@
 package main
 
 import (
+	"log"
 	"metalab/drinks-pos/controllers/api"
 	"metalab/drinks-pos/controllers/auth"
 	_ "metalab/drinks-pos/controllers/auth"
@@ -62,7 +63,7 @@ func main() {
 	auth.RegisterRoutesAuth(router)
 	payment.RegisterRoutesPayment(router.Group("/payment"))
 
-	err := router.Run("0.0.0.0:8080")
+	err = router.Run("0.0.0.0:8080")
 	if err != nil {
 		return
 	}
