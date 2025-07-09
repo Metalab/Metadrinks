@@ -34,7 +34,7 @@ func ConnectDatabase() {
 	}
 
 	if database.Limit(1).Find(&User{Name: "guest"}).RowsAffected == 0 {
-		database.Create(&User{UserID: uuid.Nil, Name: "guest", Password: string(hashedPassword), IsTrusted: false, UsedAt: time.Now().Local()})
+		database.Create(&User{UserID: uuid.Nil, Name: "Guest", Password: string(hashedPassword), IsTrusted: false, UsedAt: time.Now().Local()})
 	}
 
 	DB = database
