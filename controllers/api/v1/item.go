@@ -10,8 +10,8 @@ import (
 
 type CreateItemInput struct {
 	Name  string `json:"name" binding:"required"`
-	Image string `json:"image,omitempty"`
-	Price uint   `json:"price"`
+	Image string `json:"image"`
+	Price uint   `json:"price" binding:"required"`
 }
 
 func CreateItem(c *gin.Context) {
@@ -22,7 +22,10 @@ func CreateItem(c *gin.Context) {
 	}
 
 	item := models.Item{Name: input.Name, Image: input.Image, Price: input.Price}
-	models.DB.Create(&item)
+	if err := models.DB.Create(&item).Error; err != nil {
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
 
 	c.JSON(http.StatusOK, gin.H{"data": item})
 }
