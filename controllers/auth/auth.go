@@ -39,16 +39,16 @@ func InitParams() *jwt.GinJWTMiddleware {
 		//IdentityKey:      identityKey,
 		PayloadFunc: payloadFunc(),
 
-		//IdentityHandler: identityHandler(),
-		Authenticator:  authenticator(),
-		Authorizator:   authorize(),
-		Unauthorized:   unauthorized(),
-		SendCookie:     true,
-		CookieName:     "drinks_pos_session",
-		CookieSameSite: http.SameSiteStrictMode,
-		TokenLookup:    "cookie: drinks_pos_session, header: Authorization",
-		TokenHeadName:  "Bearer",
-		TimeFunc:       time.Now,
+		IdentityHandler: identityHandler(),
+		Authenticator:   authenticator(),
+		Authorizator:    authorize(),
+		Unauthorized:    unauthorized(),
+		SendCookie:      true,
+		CookieName:      "drinks_pos_session",
+		CookieSameSite:  http.SameSiteStrictMode,
+		TokenLookup:     "cookie: drinks_pos_session, header: Authorization",
+		TokenHeadName:   "Bearer",
+		TimeFunc:        time.Now,
 	}
 }
 
@@ -66,14 +66,14 @@ func payloadFunc() func(data any) jwt.MapClaims {
 	}
 }
 
-/*func identityHandler() func(c *gin.Context) any {
+func identityHandler() func(c *gin.Context) any {
 	return func(c *gin.Context) any {
 		claims := jwt.ExtractClaims(c)
 		return &models.User{
-			Name: claims[identityKey].(string),
+			Name: claims["sub"].(string),
 		}
 	}
-}*/
+}
 
 func authenticator() func(c *gin.Context) (any, error) {
 	return func(c *gin.Context) (any, error) {
