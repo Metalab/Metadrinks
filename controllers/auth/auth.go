@@ -1,8 +1,8 @@
 package auth
 
 import (
+	"golang.org/x/crypto/bcrypt"
 	"log"
-	"metalab/drinks-pos/controllers/api/v1"
 	"metalab/drinks-pos/models"
 	"net/http"
 	"os"
@@ -84,7 +84,7 @@ func authenticator() func(c *gin.Context) (any, error) {
 		username := loginVals.Username
 		password := loginVals.Password
 
-		user, err := v1.TryAuthenticate(username, password)
+		user, err := TryAuthenticate(username, password)
 		if err != nil {
 			log.Printf("Failed authentication for user %s: %v\n", username, err)
 			return nil, jwt.ErrFailedAuthentication
@@ -117,3 +117,21 @@ func unauthorized() func(c *gin.Context, code int, message string) {
 		"text":     "Hello World.",
 	})
 }*/
+
+func VerifyPassword(password, hashedPassword string) error {
+	return bcrypt.CompareHashAndPassword([]byte(hashedPassword), []byte(password))
+}
+
+func TryAuthenticate(username, password string) (*models.User, error) {
+	var user models.User
+
+	if err := models.DB.Where("name = ?", username).First(&user).Error; err != nil {
+		return nil, err
+	}
+
+	if err := VerifyPassword(password, user.Password); err != nil {
+		return nil, err
+	}
+
+	return &user, nil
+}

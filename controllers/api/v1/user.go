@@ -10,8 +10,6 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-var balance int
-
 type CreateUserInput struct {
 	Name     string `json:"name" binding:"required"`
 	Password string `json:"password,omitempty"`
@@ -60,16 +58,6 @@ func FindUser(c *gin.Context) {
 	user.Password = ""
 	c.Header("Content-Type", "application/json")
 	c.JSON(http.StatusOK, gin.H{"data": user})
-}
-
-func FindUserById(id uuid.UUID) (*models.User, error) {
-	var user models.User
-
-	if err := models.DB.Where("user_id = ?", id).First(&user).Error; err != nil {
-		return nil, err
-	}
-
-	return &user, nil
 }
 
 type UpdateUserInput struct {
@@ -158,22 +146,4 @@ func UpdateUserBalance(userId uuid.UUID, change int) {
 
 	user.Balance = user.Balance + change
 	models.DB.Save(&user)
-}
-
-func VerifyPassword(password, hashedPassword string) error {
-	return bcrypt.CompareHashAndPassword([]byte(hashedPassword), []byte(password))
-}
-
-func TryAuthenticate(username, password string) (*models.User, error) {
-	var user models.User
-
-	if err := models.DB.Where("name = ?", username).First(&user).Error; err != nil {
-		return nil, err
-	}
-
-	if err := VerifyPassword(password, user.Password); err != nil {
-		return nil, err
-	}
-
-	return &user, nil
 }
