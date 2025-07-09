@@ -63,7 +63,7 @@ func CreatePurchase(c *gin.Context) {
 				transactionStatus = sumup_models.TransactionFullStatusFailed
 				return
 			}
-			if (int(*balance)-int(finalCost) < 0) && !userTrust {
+			if (*balance-int(finalCost) < 0) && !userTrust {
 				c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "not enough balance"})
 				transactionStatus = sumup_models.TransactionFullStatusFailed
 				return
