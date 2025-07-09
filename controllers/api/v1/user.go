@@ -38,8 +38,12 @@ func CreateUser(c *gin.Context) {
 }
 
 func FindUsers(c *gin.Context) {
-	var users []models.User
-	models.DB.Find(&users).Order("used_at DESC")
+	var users []map[string]interface{}
+	models.DB.Model(&models.User{}).Find(&users).Order("used_at DESC")
+
+	for _, user := range users { //do not return the user password
+		delete(user, "password")
+	}
 
 	c.Header("Content-Type", "application/json")
 	c.JSON(http.StatusOK, gin.H{"data": users})
@@ -53,6 +57,7 @@ func FindUser(c *gin.Context) {
 		return
 	}
 
+	user.Password = ""
 	c.Header("Content-Type", "application/json")
 	c.JSON(http.StatusOK, gin.H{"data": user})
 }
