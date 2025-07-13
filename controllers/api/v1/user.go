@@ -1,6 +1,7 @@
 package v1
 
 import (
+	"fmt"
 	"metalab/drinks-pos/models"
 	"net/http"
 	"time"
@@ -132,6 +133,10 @@ func GetUserBalance(userId uuid.UUID) (*int, error) {
 
 	if err := models.DB.Where("user_id = ?", userId).First(&user).Error; err != nil {
 		return nil, err
+	}
+
+	if user.IsRestricted {
+		return nil, fmt.Errorf("user is restricted")
 	}
 
 	return &user.Balance, nil

@@ -15,6 +15,7 @@ type Purchase struct {
 	TransactionStatus   sumup_models.TransactionFullStatus `json:"status"`
 	ClientTransactionId string                             `json:"client_transaction_id,omitempty"`
 	FinalCost           uint                               `json:"final_cost"`
+	RefundAmount        uint                               `json:"refund_amount,omitempty"` //adds balance to the user account
 	CreatedAt           time.Time                          `json:"created_at"`
 	CreatedBy           uuid.UUID                          `json:"created_by"` // uuid of user, otherwise null uuid (for guests)
 }

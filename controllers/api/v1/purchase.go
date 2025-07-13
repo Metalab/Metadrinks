@@ -15,8 +15,9 @@ import (
 )
 
 type CreatePurchaseInput struct {
-	Items       []models.Item `json:"items" binding:"required"`
+	Items       []models.Item `json:"items"`
 	PaymentType string        `json:"payment_type" binding:"required"`
+	Amount      uint          `json:"amount"` //used only for adding balance
 	ReaderId    string        `json:"reader_id"`
 }
 
@@ -33,6 +34,16 @@ func CreatePurchase(c *gin.Context) {
 
 	if err := c.ShouldBindJSON(&input); err != nil {
 		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	if input.Amount != 0 && len(input.Items) != 0 {
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "only one of 'items' and 'amount' can be specified"})
+		return
+	}
+
+	if input.Amount != 0 && userClaims["restricted"].(bool) {
+		c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"error": "user is restricted"})
 		return
 	}
 
@@ -60,22 +71,27 @@ func CreatePurchase(c *gin.Context) {
 		if balance, err := GetUserBalance(userId); err != nil {
 			if finalCost >= math.MaxInt32 {
 				c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "final cost exceeds maximum allowed value"})
-				transactionStatus = sumup_models.TransactionFullStatusFailed
 				return
 			}
 			if (*balance-int(finalCost) < 0) && !userTrust {
-				c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "not enough balance"})
-				transactionStatus = sumup_models.TransactionFullStatusFailed
+				c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"error": "not enough balance"})
 				return
 			} else {
 				transactionStatus = sumup_models.TransactionFullStatusSuccessful
 				UpdateUserBalance(userId, -int(finalCost))
+				return
 			}
+		} else if err.Error() == "user is restricted" {
+			c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"error": err.Error()})
+			return
 		}
 	}
 
-	purchase := models.Purchase{Items: returnedItemsArray, PaymentType: models.PaymentType(input.PaymentType), ClientTransactionId: clientTransactionId, TransactionStatus: transactionStatus, FinalCost: finalCost, CreatedBy: userId}
+	purchase := models.Purchase{Items: returnedItemsArray, PaymentType: models.PaymentType(input.PaymentType), ClientTransactionId: clientTransactionId, TransactionStatus: transactionStatus, FinalCost: finalCost, RefundAmount: input.Amount, CreatedBy: userId}
 	models.DB.Create(&purchase)
+	if input.Amount != 0 {
+		UpdateUserBalance(userId, int(input.Amount))
+	}
 
 	c.JSON(http.StatusOK, gin.H{"data": purchase})
 }

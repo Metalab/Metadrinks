@@ -56,10 +56,11 @@ func payloadFunc() func(data any) jwt.MapClaims {
 	return func(data any) jwt.MapClaims {
 		if v, ok := data.(*models.User); ok {
 			return jwt.MapClaims{
-				"userId":  v.UserID.String(),
-				"sub":     v.Name,
-				"trusted": v.IsTrusted,
-				"admin":   v.IsAdmin,
+				"userId":     v.UserID.String(),
+				"sub":        v.Name,
+				"restricted": v.IsRestricted,
+				"trusted":    v.IsTrusted,
+				"admin":      v.IsAdmin,
 			}
 		}
 		return jwt.MapClaims{}
