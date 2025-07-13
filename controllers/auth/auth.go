@@ -1,12 +1,14 @@
 package auth
 
 import (
-	"golang.org/x/crypto/bcrypt"
 	"log"
-	"metalab/drinks-pos/models"
 	"net/http"
 	"os"
 	"time"
+
+	"golang.org/x/crypto/bcrypt"
+
+	"metalab/drinks-pos/models"
 
 	jwt "github.com/appleboy/gin-jwt/v2"
 	"github.com/gin-gonic/gin"
@@ -29,14 +31,13 @@ func HandlerMiddleware(authMiddleware *jwt.GinJWTMiddleware) gin.HandlerFunc {
 }
 
 func InitParams() *jwt.GinJWTMiddleware {
-
 	return &jwt.GinJWTMiddleware{
 		Realm:            "drinks-pos",
 		Key:              []byte(os.Getenv("JWT_SECRET")),
 		SigningAlgorithm: "HS512",
 		Timeout:          time.Minute * 1,
 		MaxRefresh:       time.Minute * 1,
-		//IdentityKey:      identityKey,
+		// IdentityKey:      identityKey,
 		PayloadFunc: payloadFunc(),
 
 		IdentityHandler: identityHandler(),

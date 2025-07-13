@@ -3,6 +3,7 @@ package v1
 import (
 	"io"
 	"log"
+
 	sumupmodels "metalab/drinks-pos/models/sumup"
 
 	"github.com/gin-gonic/gin"

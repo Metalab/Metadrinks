@@ -4,11 +4,12 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"net/http"
+
 	"github.com/sumup/sumup-go/readers"
 	"metalab/drinks-pos/libs"
 	"metalab/drinks-pos/models"
 	sumupmodels "metalab/drinks-pos/models/sumup"
-	"net/http"
 
 	"github.com/gin-gonic/gin"
 )
@@ -34,7 +35,7 @@ func CreateReader(c *gin.Context) {
 
 	dbReader := sumupmodels.Reader{ReaderId: sumupmodels.ReaderId(reader.Id), Name: sumupmodels.ReaderName(reader.Name), Status: sumupmodels.ReaderStatus(reader.Status), Device: sumupmodels.ReaderDevice{Identifier: reader.Device.Identifier, Model: sumupmodels.ReaderDeviceModel(reader.Device.Model)}, CreatedAt: reader.CreatedAt, UpdatedAt: reader.UpdatedAt}
 
-	result, err := libs.InitiallyCheckIfReaderIsReady(string(reader.Id)) //polls the reader a few times to see if it is ready
+	result, err := libs.InitiallyCheckIfReaderIsReady(string(reader.Id)) // polls the reader a few times to see if it is ready
 	if err != nil {
 		fmt.Printf("error while checking reader status: %s\n", err.Error())
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -52,7 +53,6 @@ func CreateReader(c *gin.Context) {
 func FindReaders(c *gin.Context) {
 	var r []sumupmodels.Reader
 	err := models.DB.Find(&r).Error
-
 	if err != nil {
 		fmt.Printf("error finding readers: %s\n", err.Error())
 		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -127,7 +127,7 @@ func TerminateReaderCheckout(c *gin.Context) {
 	if input.ReaderId == "" && input.ReaderName == "" {
 		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"message": "reader id/name missing"})
 		return
-	} else if input.ReaderId == "" && input.ReaderName != "" { //name defined, id undefined
+	} else if input.ReaderId == "" && input.ReaderName != "" { // name defined, id undefined
 		var dbReader *sumupmodels.Reader
 		var findErr error
 		dbReader, findErr = FindReaderByName(input.ReaderName)
@@ -137,13 +137,13 @@ func TerminateReaderCheckout(c *gin.Context) {
 			return
 		}
 
-		terminateErr := libs.SumupClient.Readers.TerminateCheckout(context.Background(), *libs.SumupAccount.MerchantProfile.MerchantCode, string(dbReader.ReaderId)) //uses reader id from db, retrieved from name
+		terminateErr := libs.SumupClient.Readers.TerminateCheckout(context.Background(), *libs.SumupAccount.MerchantProfile.MerchantCode, string(dbReader.ReaderId)) // uses reader id from db, retrieved from name
 		if terminateErr != nil {
 			fmt.Printf("error while terminating checkout by name: %s\n", terminateErr.Error())
 			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": terminateErr.Error()})
 			return
 		}
-	} else if input.ReaderId != "" && input.ReaderName == "" { //name undefined, id defined
+	} else if input.ReaderId != "" && input.ReaderName == "" { // name undefined, id defined
 		terminateErr := libs.SumupClient.Readers.TerminateCheckout(context.Background(), *libs.SumupAccount.MerchantProfile.MerchantCode, input.ReaderId) // uses reader id from input
 		if terminateErr != nil {
 			fmt.Printf("error while terminating checkout by id: %s\n", terminateErr.Error())
@@ -174,7 +174,7 @@ func UnlinkReader(c *gin.Context) {
 	if input.ReaderId == "" && input.ReaderName == "" {
 		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"message": "reader id/name missing"})
 		return
-	} else if input.ReaderId == "" && input.ReaderName != "" { //name defined
+	} else if input.ReaderId == "" && input.ReaderName != "" { // name defined
 		var dbReader *sumupmodels.Reader
 		var findErr error
 		dbReader, findErr = FindReaderByName(input.ReaderName)
@@ -195,7 +195,7 @@ func UnlinkReader(c *gin.Context) {
 			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": deleteErr.Error()})
 			return
 		}
-	} else if input.ReaderId != "" && input.ReaderName == "" { //name undefined
+	} else if input.ReaderId != "" && input.ReaderName == "" { // name undefined
 		unlinkErr := libs.SumupClient.Readers.DeleteReader(context.Background(), *libs.SumupAccount.MerchantProfile.MerchantCode, readers.ReaderId(input.ReaderId))
 		if unlinkErr != nil {
 			fmt.Printf("error while unlinking reader by id: %s\n", unlinkErr.Error())
@@ -218,7 +218,7 @@ func UnlinkReader(c *gin.Context) {
 }
 
 func GetIncomingWebhook(c *gin.Context) {
-	//After receiving a webhook call, your application must always verify if the event really took place, by calling a relevant SumUp's API.
+	// After receiving a webhook call, your application must always verify if the event really took place, by calling a relevant SumUp's API.
 	var input sumupmodels.ReaderCheckoutStatusChange
 	if err := c.ShouldBindJSON(&input); err != nil {
 		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": err.Error()})

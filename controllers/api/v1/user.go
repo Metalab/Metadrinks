@@ -2,9 +2,10 @@ package v1
 
 import (
 	"fmt"
-	"metalab/drinks-pos/models"
 	"net/http"
 	"time"
+
+	"metalab/drinks-pos/models"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -23,7 +24,7 @@ func CreateUser(c *gin.Context) {
 		return
 	}
 
-	var userId = uuid.New()
+	userId := uuid.New()
 
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(input.Password), bcrypt.DefaultCost)
 	if err != nil {
@@ -40,7 +41,7 @@ func FindUsers(c *gin.Context) {
 	var users []map[string]interface{}
 	models.DB.Model(&models.User{}).Find(&users).Order("used_at DESC")
 
-	for _, user := range users { //do not return the user password
+	for _, user := range users { // do not return the user password
 		delete(user, "password")
 	}
 

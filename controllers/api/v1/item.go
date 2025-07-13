@@ -1,8 +1,9 @@
 package v1
 
 import (
-	"metalab/drinks-pos/models"
 	"net/http"
+
+	"metalab/drinks-pos/models"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"

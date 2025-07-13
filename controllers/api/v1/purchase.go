@@ -3,11 +3,12 @@ package v1
 import (
 	"fmt"
 	"math"
-	"metalab/drinks-pos/libs"
-	"metalab/drinks-pos/models"
-	sumup_models "metalab/drinks-pos/models/sumup"
 	"net/http"
 	"strings"
+
+	"metalab/drinks-pos/libs"
+	"metalab/drinks-pos/models"
+	sumupmodels "metalab/drinks-pos/models/sumup"
 
 	jwt "github.com/appleboy/gin-jwt/v2"
 	"github.com/gin-gonic/gin"
@@ -17,20 +18,20 @@ import (
 type CreatePurchaseInput struct {
 	Items       []models.Item `json:"items"`
 	PaymentType string        `json:"payment_type" binding:"required"`
-	Amount      uint          `json:"amount"` //used only for adding balance
+	Amount      uint          `json:"amount"` // used only for adding balance
 	ReaderId    string        `json:"reader_id"`
 }
 
 func CreatePurchase(c *gin.Context) {
 	var input CreatePurchaseInput
 	var finalCost uint = 0
-	var clientTransactionId = ""
+	clientTransactionId := ""
 	var transactionDescription []string
-	var transactionStatus sumup_models.TransactionFullStatus
+	var transactionStatus sumupmodels.TransactionFullStatus
 	var returnedItemsArray []models.Item
-	var userClaims = jwt.ExtractClaims(c)
-	var userId = uuid.MustParse(userClaims["userId"].(string))
-	var userTrust = userClaims["trusted"].(bool)
+	userClaims := jwt.ExtractClaims(c)
+	userId := uuid.MustParse(userClaims["userId"].(string))
+	userTrust := userClaims["trusted"].(bool)
 
 	if err := c.ShouldBindJSON(&input); err != nil {
 		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -54,11 +55,11 @@ func CreatePurchase(c *gin.Context) {
 		transactionDescription = append(transactionDescription, fmt.Sprintf("%s", item.Name))
 	}
 
-	var finalTransactionDescription = strings.Join(transactionDescription[:], ", ")
+	finalTransactionDescription := strings.Join(transactionDescription[:], ", ")
 	switch input.PaymentType {
 	case "card":
 		var err error
-		transactionStatus = sumup_models.TransactionFullStatusPending
+		transactionStatus = sumupmodels.TransactionFullStatusPending
 		clientTransactionId, err = libs.StartReaderCheckout(input.ReaderId, finalCost, &finalTransactionDescription)
 		if err != nil {
 			fmt.Printf("error while creating reader checkout: %s\n", err.Error())
@@ -66,7 +67,7 @@ func CreatePurchase(c *gin.Context) {
 			return
 		}
 	case "cash":
-		transactionStatus = sumup_models.TransactionFullStatusSuccessful
+		transactionStatus = sumupmodels.TransactionFullStatusSuccessful
 	case "balance":
 		if balance, err := GetUserBalance(userId); err != nil {
 			if finalCost >= math.MaxInt32 {
@@ -77,7 +78,7 @@ func CreatePurchase(c *gin.Context) {
 				c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"error": "not enough balance"})
 				return
 			} else {
-				transactionStatus = sumup_models.TransactionFullStatusSuccessful
+				transactionStatus = sumupmodels.TransactionFullStatusSuccessful
 				UpdateUserBalance(userId, -int(finalCost))
 				return
 			}

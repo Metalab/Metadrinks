@@ -3,10 +3,11 @@ package libs
 import (
 	"context"
 	"fmt"
-	"metalab/drinks-pos/models"
-	sumupmodels "metalab/drinks-pos/models/sumup"
 	"os"
 	"time"
+
+	"metalab/drinks-pos/models"
+	sumupmodels "metalab/drinks-pos/models/sumup"
 
 	"github.com/sumup/sumup-go"
 	"github.com/sumup/sumup-go/client"
@@ -15,8 +16,10 @@ import (
 	"gorm.io/gorm"
 )
 
-var SumupAccount *merchant.MerchantAccount
-var SumupClient *sumup.Client
+var (
+	SumupAccount *merchant.MerchantAccount
+	SumupClient  *sumup.Client
+)
 
 func Login(apiKey string) {
 	SumupClient = sumup.NewClient(client.WithAPIKey(apiKey))
@@ -52,7 +55,7 @@ func InitAPIReaders() {
 }
 
 func StartReaderCheckout(ReaderId string, TotalAmount uint, Description *string) (ClientTransactionId string, Error error) {
-	var returnUrl = os.Getenv("SUMUP_RETURN_URL")
+	returnUrl := os.Getenv("SUMUP_RETURN_URL")
 	response, checkoutErr := SumupClient.Readers.CreateCheckout(context.Background(), *SumupAccount.MerchantProfile.MerchantCode, ReaderId, readers.CreateReaderCheckoutBody{Description: Description, ReturnUrl: &returnUrl, TotalAmount: readers.CreateReaderCheckoutAmount{Currency: "EUR", MinorUnit: 2, Value: int(TotalAmount)}})
 	if checkoutErr != nil {
 		return "error", fmt.Errorf("error while creating reader checkout: %s", checkoutErr.Error())
@@ -66,7 +69,7 @@ func InitiallyCheckIfReaderIsReady(ReaderId string) (Result *sumupmodels.Reader,
 	secondsBetween := 5
 	for i := 0; i <= count; i++ {
 		time.Sleep(time.Second * time.Duration(secondsBetween))
-		//response, err := SumupClient.Readers.List(context.Background(), *SumupAccount.MerchantProfile.MerchantCode)
+		// response, err := SumupClient.Readers.List(context.Background(), *SumupAccount.MerchantProfile.MerchantCode)
 		reader, err := SumupClient.Readers.Get(context.Background(), *SumupAccount.MerchantProfile.MerchantCode, readers.ReaderId(ReaderId), readers.GetReaderParams{})
 		if err != nil {
 			fmt.Printf("[ERROR] SumUp API: Error getting reader %s (Iteration %d/%d): %s\n", ReaderId, i, count, err.Error())
