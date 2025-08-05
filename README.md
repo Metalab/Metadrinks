@@ -1,5 +1,5 @@
-# metalab-drinks-backend
-This project contains the backend code for the Metadrinks project.
+# metalab-drinks
+This project contains the backend and frontend code for the Metadrinks project.
 
 ## Setting up
 Copy the contents of `.env.example` to `.env` and replace the values accordingly.
