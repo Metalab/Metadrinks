@@ -4,7 +4,7 @@ import (
 	"io"
 	"log"
 
-	sumupmodels "metalab/drinks-pos/models/sumup"
+	sumupmodels "metalab/metadrinks/models/sumup"
 
 	"github.com/gin-gonic/gin"
 )

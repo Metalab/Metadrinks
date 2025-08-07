@@ -6,9 +6,9 @@ import (
 	"net/http"
 	"strings"
 
-	"metalab/drinks-pos/libs"
-	"metalab/drinks-pos/models"
-	sumupmodels "metalab/drinks-pos/models/sumup"
+	"metalab/metadrinks/libs"
+	"metalab/metadrinks/models"
+	sumupmodels "metalab/metadrinks/models/sumup"
 
 	jwt "github.com/appleboy/gin-jwt/v2"
 	"github.com/gin-gonic/gin"

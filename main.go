@@ -7,12 +7,11 @@ import (
 
 	jwt "github.com/appleboy/gin-jwt/v2"
 
-	"metalab/drinks-pos/controllers/api"
-	"metalab/drinks-pos/controllers/auth"
-	_ "metalab/drinks-pos/controllers/auth"
-	"metalab/drinks-pos/controllers/payment"
-	"metalab/drinks-pos/libs"
-	"metalab/drinks-pos/models"
+	"metalab/metadrinks/controllers/api"
+	"metalab/metadrinks/controllers/auth"
+	"metalab/metadrinks/controllers/payment"
+	"metalab/metadrinks/libs"
+	"metalab/metadrinks/models"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"

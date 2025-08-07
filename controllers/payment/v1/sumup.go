@@ -6,10 +6,11 @@ import (
 	"fmt"
 	"net/http"
 
+	"metalab/metadrinks/libs"
+	"metalab/metadrinks/models"
+	sumupmodels "metalab/metadrinks/models/sumup"
+
 	"github.com/sumup/sumup-go/readers"
-	"metalab/drinks-pos/libs"
-	"metalab/drinks-pos/models"
-	sumupmodels "metalab/drinks-pos/models/sumup"
 
 	"github.com/gin-gonic/gin"
 )

@@ -1,8 +1,9 @@
 package api
 
 import (
+	"metalab/metadrinks/controllers/api/v1"
+
 	"github.com/gin-gonic/gin"
-	"metalab/drinks-pos/controllers/api/v1"
 )
 
 func RegisterRoutesAPI(r *gin.RouterGroup) {

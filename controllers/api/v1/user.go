@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"time"
 
-	"metalab/drinks-pos/models"
+	"metalab/metadrinks/models"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"

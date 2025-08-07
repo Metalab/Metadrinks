@@ -1,8 +1,9 @@
 package payment
 
 import (
+	v1 "metalab/metadrinks/controllers/payment/v1"
+
 	"github.com/gin-gonic/gin"
-	v1 "metalab/drinks-pos/controllers/payment/v1"
 )
 
 func RegisterRoutesPayment(r *gin.RouterGroup) {

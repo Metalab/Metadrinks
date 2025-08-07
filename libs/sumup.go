@@ -6,8 +6,8 @@ import (
 	"os"
 	"time"
 
-	"metalab/drinks-pos/models"
-	sumupmodels "metalab/drinks-pos/models/sumup"
+	"metalab/metadrinks/models"
+	sumupmodels "metalab/metadrinks/models/sumup"
 
 	"github.com/sumup/sumup-go"
 	"github.com/sumup/sumup-go/client"

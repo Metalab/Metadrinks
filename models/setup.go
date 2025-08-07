@@ -5,7 +5,7 @@ import (
 	"os"
 	"time"
 
-	models "metalab/drinks-pos/models/sumup"
+	models "metalab/metadrinks/models/sumup"
 
 	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"

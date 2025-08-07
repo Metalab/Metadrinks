@@ -3,21 +3,21 @@ package models
 import (
 	"time"
 
-	sumup_models "metalab/drinks-pos/models/sumup"
+	sumupmodels "metalab/metadrinks/models/sumup"
 
 	"github.com/google/uuid"
 )
 
 type Purchase struct {
-	PurchaseId          uuid.UUID                          `json:"id" gorm:"primaryKey;unique;type:uuid;default:gen_random_uuid()"`
-	Items               []Item                             `json:"items" gorm:"foreignKey:ItemID;type:bytes;serializer:gob"`
-	PaymentType         PaymentType                        `json:"payment_type"`
-	TransactionStatus   sumup_models.TransactionFullStatus `json:"status"`
-	ClientTransactionId string                             `json:"client_transaction_id,omitempty"`
-	FinalCost           uint                               `json:"final_cost"`
-	RefundAmount        uint                               `json:"refund_amount,omitempty"` // adds balance to the user account
-	CreatedAt           time.Time                          `json:"created_at"`
-	CreatedBy           uuid.UUID                          `json:"created_by"` // uuid of user, otherwise null uuid (for guests)
+	PurchaseId          uuid.UUID                         `json:"id" gorm:"primaryKey;unique;type:uuid;default:gen_random_uuid()"`
+	Items               []Item                            `json:"items" gorm:"foreignKey:ItemID;type:bytes;serializer:gob"`
+	PaymentType         PaymentType                       `json:"payment_type"`
+	TransactionStatus   sumupmodels.TransactionFullStatus `json:"status"`
+	ClientTransactionId string                            `json:"client_transaction_id,omitempty"`
+	FinalCost           uint                              `json:"final_cost"`
+	RefundAmount        uint                              `json:"refund_amount,omitempty"` // adds balance to the user account
+	CreatedAt           time.Time                         `json:"created_at"`
+	CreatedBy           uuid.UUID                         `json:"created_by"` // uuid of user, otherwise null uuid (for guests)
 }
 
 // PaymentType The type of the payment object gives information about the type of payment.
