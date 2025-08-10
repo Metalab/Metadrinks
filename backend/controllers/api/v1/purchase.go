@@ -105,7 +105,7 @@ func FindPurchases(c *gin.Context) {
 	userClaims := jwt.ExtractClaims(c)
 	userId := uuid.MustParse(userClaims["userId"].(string))
 
-	models.DB.Find(&purchases).Where("id = ?", userId)
+	models.DB.Find(&purchases).Where("created_by = ?", userId)
 
 	c.Header("Content-Type", "application/json")
 	c.JSON(http.StatusOK, gin.H{"data": purchases})
