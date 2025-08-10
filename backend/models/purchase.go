@@ -26,7 +26,7 @@ type Purchase struct {
 //
 // - `cash`: The payment was made with cash.
 // - `unpaid`: The payment was made with a credit/debit card.
-// - `balance`: The payment was made using the balance of the logged in user.
+// - `balance`: The payment was made using the balance of the logged-in user.
 type PaymentType string
 
 const (

@@ -72,7 +72,7 @@ type ReaderId string
 // Max length: 500
 type ReaderName string
 
-// ReaderPairingCode is the pairing code is a 8 or 9 character alphanumeric string that is displayed on a SumUp
+// ReaderPairingCode is an 8 or 9 character alphanumeric string that is displayed on a SumUp
 // Device after initiating the pairing.
 // It is used to link the physical device to the created pairing.
 //
