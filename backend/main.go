@@ -68,6 +68,8 @@ func main() {
 	auth.RegisterRoutesAuth(router.Group("/auth"))
 	payment.RegisterRoutesPayment(router.Group("/payment"))
 
+	router.MaxMultipartMemory = 8 << 20 //8 MiB
+
 	err = router.Run("0.0.0.0:8080")
 	if err != nil {
 		return

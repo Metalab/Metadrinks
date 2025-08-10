@@ -2,6 +2,7 @@ package v1
 
 import (
 	"net/http"
+	"path/filepath"
 
 	"metalab/metadrinks/models"
 
@@ -21,6 +22,10 @@ func CreateItem(c *gin.Context) {
 		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
+
+	file, _ := c.FormFile("file")
+	filename := filepath.Base(file.Filename)
+	c.SaveUploadedFile(file, "../assets/"+filename)
 
 	item := models.Item{Name: input.Name, Image: input.Image, Price: input.Price}
 	if err := models.DB.Create(&item).Error; err != nil {
