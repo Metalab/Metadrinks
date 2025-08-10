@@ -22,7 +22,7 @@ func RegisterRoutesV1(r *gin.RouterGroup) {
 	u.DELETE("//:id", auth.JWTAuthMiddleware.MiddlewareFunc(), DeleteUser)
 
 	p := r.Group("purchases")
-	p.POST("/", CreatePurchase)
+	p.POST("/", auth.JWTAuthMiddleware.MiddlewareFunc(), CreatePurchase)
 	p.GET("/", FindPurchases)
 	p.GET("/:id", FindPurchase)
 	//p.PATCH("/:id", UpdatePurchase)
