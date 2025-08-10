@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"math"
 	"net/http"
+	"strconv"
 	"strings"
 
 	"metalab/metadrinks/libs"
@@ -105,7 +106,14 @@ func FindPurchases(c *gin.Context) {
 	userClaims := jwt.ExtractClaims(c)
 	userId := uuid.MustParse(userClaims["userId"].(string))
 
-	models.DB.Find(&purchases).Where("created_by = ?", userId)
+	limit := c.DefaultQuery("limit", "-1")
+	limitInt, err := strconv.Atoi(limit)
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	models.DB.Find(&purchases).Where("created_by = ?", userId).Limit(limitInt)
 
 	c.Header("Content-Type", "application/json")
 	c.JSON(http.StatusOK, gin.H{"data": purchases})
