@@ -42,14 +42,14 @@ func InitParams() *jwt.GinJWTMiddleware {
 
 		IdentityHandler: identityHandler(),
 		Authenticator:   authenticator(),
-		Authorizator:    authorize(),
-		Unauthorized:    unauthorized(),
-		SendCookie:      true,
-		CookieName:      "drinks_pos_session",
-		CookieSameSite:  http.SameSiteStrictMode,
-		TokenLookup:     "cookie: drinks_pos_session, header: Authorization",
-		TokenHeadName:   "Bearer",
-		TimeFunc:        time.Now,
+		//Authorizator:    authorize(),
+		Unauthorized:   unauthorized(),
+		SendCookie:     true,
+		CookieName:     "drinks_pos_session",
+		CookieSameSite: http.SameSiteStrictMode,
+		TokenLookup:    "cookie: drinks_pos_session, header: Authorization",
+		TokenHeadName:  "Bearer",
+		TimeFunc:       time.Now,
 	}
 }
 
@@ -136,4 +136,13 @@ func TryAuthenticate(username, password string) (*models.User, error) {
 	}
 
 	return &user, nil
+}
+
+func IsUserAdmin() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		if jwt.ExtractClaims(c)["admin"].(bool) != true {
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+			return
+		}
+	}
 }
