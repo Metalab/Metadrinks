@@ -99,9 +99,13 @@ func CreatePurchase(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"data": purchase})
 }
 
+// FindPurchases only returns purchases of the currently logged-in user
 func FindPurchases(c *gin.Context) {
 	var purchases []models.Purchase
-	models.DB.Find(&purchases)
+	userClaims := jwt.ExtractClaims(c)
+	userId := uuid.MustParse(userClaims["userId"].(string))
+
+	models.DB.Find(&purchases).Where("id = ?", userId)
 
 	c.Header("Content-Type", "application/json")
 	c.JSON(http.StatusOK, gin.H{"data": purchases})

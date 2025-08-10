@@ -23,8 +23,8 @@ func RegisterRoutesV1(r *gin.RouterGroup) {
 
 	p := r.Group("purchases")
 	p.POST("/", auth.JWTAuthMiddleware.MiddlewareFunc(), CreatePurchase)
-	p.GET("/", FindPurchases)
-	p.GET("/:id", FindPurchase)
+	p.GET("/", auth.JWTAuthMiddleware.MiddlewareFunc(), FindPurchases)
+	p.GET("/:id", auth.JWTAuthMiddleware.MiddlewareFunc(), FindPurchase)
 	//p.PATCH("/:id", UpdatePurchase)
 	//p.DELETE("/:id", DeletePurchase)
 }
