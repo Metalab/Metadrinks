@@ -76,6 +76,8 @@ func InitiallyCheckIfReaderIsReady(ReaderId string) (Result *sumupmodels.Reader,
 			continue
 		}
 		if reader.Status != readers.ReaderStatusPaired {
+			editedReader := sumupmodels.Reader{Status: sumupmodels.ReaderStatus(reader.Status)}
+			models.DB.Where(&sumupmodels.Reader{ReaderId: sumupmodels.ReaderId(ReaderId)}).Updates(editedReader)
 			fmt.Printf("[INFO] SumUp API: Reader %s not ready (Iteration %d/%d)\n", ReaderId, i, count)
 			continue
 		}
