@@ -69,7 +69,7 @@ func CreatePurchase(c *gin.Context) {
 	case "cash":
 		transactionStatus = sumupmodels.TransactionFullStatusSuccessful
 	case "balance":
-		if balance, err := GetUserBalance(userId); err != nil {
+		if balance, err := GetUserBalance(userId); err == nil {
 			if finalCost >= math.MaxInt32 {
 				c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "final cost exceeds maximum allowed value"})
 				return
@@ -84,6 +84,9 @@ func CreatePurchase(c *gin.Context) {
 			}
 		} else if err.Error() == "user is restricted" {
 			c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"error": err.Error()})
+			return
+		} else {
+			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
 		}
 	}
