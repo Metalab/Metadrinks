@@ -2,11 +2,11 @@ package models
 
 import "time"
 
-// Meta: Set of user-defined key-value pairs attached to the object.
+// Meta is a set of user-defined key-value pairs attached to the object.
 // Max properties: 50
 type Meta map[string]any
 
-// Reader: A physical card reader device that can accept in-person payments.
+// A Reader is a physical card reader device that can accept in-person payments.
 type Reader struct {
 	// Reader creation timestamp.
 	CreatedAt time.Time `json:"created_at"`
@@ -40,7 +40,7 @@ type Reader struct {
 	UpdatedAt time.Time `json:"updated_at"`
 }
 
-// ReaderDevice: Information about the underlying physical device.
+// ReaderDevice gives information about the underlying physical device.
 type ReaderDevice struct {
 	// A unique identifier of the physical device (e.g. serial number).
 	Identifier string `json:"identifier"`
@@ -48,7 +48,7 @@ type ReaderDevice struct {
 	Model ReaderDeviceModel `json:"model"`
 }
 
-// ReaderDeviceModel: Identifier of the model of the device.
+// ReaderDeviceModel is the identifier of the model of the device.
 type ReaderDeviceModel string
 
 const (
@@ -56,7 +56,7 @@ const (
 	ReaderDeviceModelVirtualSolo ReaderDeviceModel = "virtual-solo"
 )
 
-// ReaderId: Unique identifier of the object.
+// ReaderId is the unique identifier of the object.
 //
 // Note that this identifies the instance of the physical devices pairing with your SumUp account.
 //
@@ -67,12 +67,12 @@ const (
 // Max length: 30
 type ReaderId string
 
-// ReaderName: Custom human-readable, user-defined name for easier identification of the reader.
+// ReaderName is a custom human-readable, user-defined name for easier identification of the reader.
 //
 // Max length: 500
 type ReaderName string
 
-// ReaderPairingCode: The pairing code is a 8 or 9 character alphanumeric string that is displayed on a SumUp
+// ReaderPairingCode is the pairing code is a 8 or 9 character alphanumeric string that is displayed on a SumUp
 // Device after initiating the pairing.
 // It is used to link the physical device to the created pairing.
 //
@@ -80,7 +80,7 @@ type ReaderName string
 // Max length: 9
 type ReaderPairingCode string
 
-// ReaderStatus: The status of the reader object gives information about the current state of the reader.
+// ReaderStatus is the status of the reader object gives information about the current state of the reader.
 //
 // Possible values:
 //
@@ -111,7 +111,7 @@ type ReaderCheckoutStatusChangePayload struct {
 	TransactionId       string                `json:"transaction_id,omitempty"`
 }
 
-// TransactionFullStatus: Current status of the transaction.
+// TransactionFullStatus is the current status of the transaction.
 type TransactionFullStatus string
 
 const (
