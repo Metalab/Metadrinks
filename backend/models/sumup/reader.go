@@ -51,6 +51,7 @@ type ReaderDevice struct {
 // ReaderDeviceModel is the identifier of the model of the device.
 type ReaderDeviceModel string
 
+//goland:noinspection GoUnusedConst,GoUnusedConst
 const (
 	ReaderDeviceModelSolo        ReaderDeviceModel = "solo"
 	ReaderDeviceModelVirtualSolo ReaderDeviceModel = "virtual-solo"
@@ -90,6 +91,7 @@ type ReaderPairingCode string
 // - `expired` - The pairing is expired and no longer usable with the account. The resource needs to get recreated
 type ReaderStatus string
 
+//goland:noinspection GoUnusedConst,GoUnusedConst,GoUnusedConst
 const (
 	ReaderStatusExpired    ReaderStatus = "expired"
 	ReaderStatusPaired     ReaderStatus = "paired"
@@ -114,6 +116,7 @@ type ReaderCheckoutStatusChangePayload struct {
 // TransactionFullStatus is the current status of the transaction.
 type TransactionFullStatus string
 
+//goland:noinspection GoUnusedConst,GoUnusedConst
 const (
 	TransactionFullStatusCancelled  TransactionFullStatus = "cancelled"
 	TransactionFullStatusFailed     TransactionFullStatus = "failed"

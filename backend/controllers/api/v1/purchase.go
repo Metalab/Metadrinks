@@ -119,14 +119,6 @@ func FindPurchase(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"data": purchase})
 }
 
-func FindPurchaseByTransactionId(id string) (*models.Purchase, error) {
-	var purchase models.Purchase
-	if err := models.DB.Where("client_transaction_id = ?", id).First(&purchase).Error; err != nil {
-		return nil, err
-	}
-	return &purchase, nil
-}
-
 /*type UpdatePurchaseInput struct {
 	Items       []models.Item `json:"items" binding:"required"`
 	PaymentType string        `json:"payment_type" binding:"required"`

@@ -95,6 +95,7 @@ func InitiallyCheckIfReaderIsReady(ReaderId string) (Result *sumupmodels.Reader,
 	return nil, fmt.Errorf("reader %s not ready after waiting %d seconds", ReaderId, count*secondsBetween)
 }
 
+//goland:noinspection GoUnusedExportedFunction
 func CheckIfReaderIsReady(ReaderId string) (IsReady bool, Error error) {
 	reader, err := SumupClient.Readers.Get(context.Background(), *SumupAccount.MerchantProfile.MerchantCode, readers.ReaderId(ReaderId), readers.GetReaderParams{})
 	if err != nil {
@@ -103,7 +104,7 @@ func CheckIfReaderIsReady(ReaderId string) (IsReady bool, Error error) {
 	}
 	if reader.Status != readers.ReaderStatusPaired {
 		fmt.Printf("[INFO] SumUp API: Reader %s not ready\n", ReaderId)
-		return false, fmt.Errorf("reader not ready yet")
+		return false, fmt.Errorf("reader is not ready")
 	}
 	editedReader := sumupmodels.Reader{Status: sumupmodels.ReaderStatusPaired}
 	models.DB.Where(&sumupmodels.Reader{ReaderId: sumupmodels.ReaderId(ReaderId)}).Updates(editedReader)
