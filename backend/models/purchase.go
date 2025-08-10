@@ -33,5 +33,4 @@ const (
 	PaymentTypeCash    PaymentType = "cash"
 	PaymentTypeCard    PaymentType = "card"
 	PaymentTypeBalance PaymentType = "balance"
-	PaymentTypeOther   PaymentType = "other"
 )
