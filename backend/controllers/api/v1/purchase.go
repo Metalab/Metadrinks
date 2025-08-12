@@ -121,8 +121,10 @@ func FindPurchases(c *gin.Context) {
 
 func FindPurchase(c *gin.Context) {
 	var purchase models.Purchase
+	userClaims := jwt.ExtractClaims(c)
+	userId := uuid.MustParse(userClaims["userId"].(string))
 
-	if err := models.DB.Where("purchase_id = ?", c.Param("id")).First(&purchase).Error; err != nil {
+	if err := models.DB.Where("created_by = ?", userId).Where("purchase_id = ?", c.Param("id")).First(&purchase).Error; err != nil {
 		c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"error": err.Error()})
 		return
 	}
