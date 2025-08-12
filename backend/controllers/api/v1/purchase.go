@@ -113,7 +113,7 @@ func FindPurchases(c *gin.Context) {
 		return
 	}
 
-	models.DB.Find(&purchases).Where("created_by = ?", userId).Limit(limitInt)
+	models.DB.Where("created_by = ?", userId).Find(&purchases).Limit(limitInt)
 
 	c.Header("Content-Type", "application/json")
 	c.JSON(http.StatusOK, gin.H{"data": purchases})
