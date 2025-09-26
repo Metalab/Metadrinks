@@ -17,6 +17,20 @@ type CreateUserInput struct {
 	Password string `json:"password,omitempty"`
 }
 
+// CreateUser godoc
+//
+//	@Summary		Create user
+//	@Description	creates a new user
+//	@Tags			users
+//	@Accept			json
+//	@Produce		json
+//	@Success		200	{object}	models.User
+//	@Failure		400
+//	@Failure		500
+//
+//	@Param			user	body	CreateUserInput	true	"Create user"
+//
+//	@Router			/users [post]
 func CreateUser(c *gin.Context) {
 	var input CreateUserInput
 	if err := c.ShouldBindJSON(&input); err != nil {
@@ -37,6 +51,18 @@ func CreateUser(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"data": user})
 }
 
+// FindUsers godoc
+//
+//	@Summary		Find users
+//	@Description	Lists all users
+//	@Tags			users
+//	@Accept			json
+//	@Produce		json
+//	@Success		200	{object}	[]models.User
+//	@Failure		500
+//
+//
+//	@Router			/users [get]
 func FindUsers(c *gin.Context) {
 	var users []map[string]interface{}
 	models.DB.Model(&models.User{}).Find(&users).Order("used_at DESC")
@@ -49,6 +75,19 @@ func FindUsers(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"data": users})
 }
 
+// FindUser godoc
+//
+//	@Summary		Find user
+//	@Description	Returns specific user
+//	@Tags			users
+//	@Accept			json
+//	@Produce		json
+//	@Success		200	{object}	models.User
+//	@Failure		500
+//
+//	@Param			id	path	string	true	"User UUID"
+//
+//	@Router			/users/{id} [get]
 func FindUser(c *gin.Context) {
 	var user models.User
 
@@ -66,7 +105,7 @@ type UpdateUserInput struct {
 	Name string `json:"name" binding:"required"`
 }
 
-func UpdateUser(c *gin.Context) {
+/*func UpdateUser(c *gin.Context) {
 	var user models.Item
 	if err := models.DB.Where("user_id = ?", c.Param("id")).First(&user).Error; err != nil {
 		c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"error": "record not found"})
@@ -94,7 +133,7 @@ func DeleteUser(c *gin.Context) {
 
 	models.DB.Delete(&user)
 	c.JSON(http.StatusOK, gin.H{"data": "success"})
-}
+}*/
 
 /*
 	func UpdateUserBalance(c *gin.Context) {

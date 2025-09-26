@@ -15,6 +15,20 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// CreateReader godoc
+//
+//	@Summary		Create reader
+//	@Description	Creates and links new reader
+//	@Tags			sumup
+//	@Accept			json
+//	@Produce		json
+//	@Success		200	{object}	sumupmodels.Reader
+//	@Failure		400
+//	@Failure		500
+//
+//	@Param			user	body	readers.CreateReaderBody	true	"Create reader"
+//
+//	@Router			/readers/link [post]
 func CreateReader(c *gin.Context) {
 	var input readers.CreateReaderBody
 	if err := c.ShouldBindJSON(&input); err != nil {
@@ -51,6 +65,17 @@ func CreateReader(c *gin.Context) {
 	}
 }
 
+// FindReaders godoc
+//
+//	@Summary		Find readers
+//	@Description	Returns all readers
+//	@Tags			sumup
+//	@Accept			json
+//	@Produce		json
+//	@Success		200	{object}	[]sumupmodels.Reader
+//	@Failure		500
+//
+//	@Router			/readers [get]
 func FindReaders(c *gin.Context) {
 	var r []sumupmodels.Reader
 	err := models.DB.Find(&r).Error
@@ -74,6 +99,19 @@ func FindApiReaders(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"data": response})
 }
 
+// FindReader godoc
+//
+//	@Summary		Find reader
+//	@Description	Returns specific reader
+//	@Tags			sumup
+//	@Accept			json
+//	@Produce		json
+//	@Success		200	{object}	sumupmodels.Reader
+//	@Failure		500
+//
+//	@Param			id	path	string	true	"Reader UUID"
+//
+//	@Router			/readers/{id} [get]
 func FindReader(c *gin.Context) {
 	var reader sumupmodels.Reader
 
@@ -118,6 +156,19 @@ type TerminateReaderInput struct {
 	ReaderName string `json:"name"`
 }
 
+// TerminateReaderCheckout godoc
+//
+//	@Summary		Terminate reader checkout
+//	@Description	Stops the running reader checkout
+//	@Tags			sumup
+//	@Accept			json
+//	@Produce		json
+//	@Success		200
+//	@Failure		500
+//
+//	@Param			reader	body	TerminateReaderInput	true	"Terminate reader input"
+//
+//	@Router			/readers/terminate [delete]
 func TerminateReaderCheckout(c *gin.Context) {
 	var input TerminateReaderInput
 	if err := c.ShouldBindJSON(&input); err != nil {
@@ -164,6 +215,19 @@ type UnlinkReaderInput struct {
 	ReaderName string `json:"name"`
 }
 
+// UnlinkReader godoc
+//
+//	@Summary		Unlink reader
+//	@Description	Unlinks the specified reader
+//	@Tags			sumup
+//	@Accept			json
+//	@Produce		json
+//	@Success		200
+//	@Failure		500
+//
+//	@Param			reader	body	UnlinkReaderInput	true	"Unlink reader input"
+//
+//	@Router			/readers/unlink [delete]
 func UnlinkReader(c *gin.Context) {
 	var input UnlinkReaderInput
 
@@ -218,6 +282,19 @@ func UnlinkReader(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"data": "success"})
 }
 
+// GetIncomingWebhook godoc
+//
+//	@Summary		Get incoming webhook
+//	@Description	Processes the incoming sumup webhook
+//	@Tags			sumup
+//	@Accept			json
+//	@Produce		json
+//	@Success		200
+//	@Failure		500
+//
+//	@Param			webhook	body	sumupmodels.ReaderCheckoutStatusChange	true	"Webhook data"
+//
+//	@Router			/callback [post]
 func GetIncomingWebhook(c *gin.Context) {
 	// After receiving a webhook call, your application must always verify if the event really took place, by calling a relevant SumUp's API.
 	var input sumupmodels.ReaderCheckoutStatusChange

@@ -1,0 +1,1029 @@
+{
+    "swagger": "2.0",
+    "info": {
+        "title": "Metadrinks Backend API",
+        "contact": {},
+        "license": {
+            "name": "GPLv3",
+            "url": "https://www.gnu.org/licenses/gpl-3.0.html"
+        },
+        "version": "1.0"
+    },
+    "paths": {
+        "/callback": {
+            "post": {
+                "description": "Processes the incoming sumup webhook",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "sumup"
+                ],
+                "summary": "Get incoming webhook",
+                "parameters": [
+                    {
+                        "description": "Webhook data",
+                        "name": "webhook",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.ReaderCheckoutStatusChange"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    },
+                    "500": {
+                        "description": "Internal Server Error"
+                    }
+                }
+            }
+        },
+        "/items": {
+            "get": {
+                "description": "get items",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "items"
+                ],
+                "summary": "Find items",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/models.Item"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error"
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "create new item",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "items"
+                ],
+                "summary": "Create item",
+                "parameters": [
+                    {
+                        "description": "Create item",
+                        "name": "item",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/v1.CreateItemInput"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/models.Item"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized"
+                    },
+                    "500": {
+                        "description": "Internal Server Error"
+                    }
+                }
+            }
+        },
+        "/items/{id}": {
+            "get": {
+                "description": "get specific item",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "items"
+                ],
+                "summary": "Find item",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Item UUID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/models.Item"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found"
+                    },
+                    "500": {
+                        "description": "Internal Server Error"
+                    }
+                }
+            },
+            "put": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "update specific item",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "items"
+                ],
+                "summary": "Update item",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Item UUID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/models.Item"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized"
+                    },
+                    "404": {
+                        "description": "Not Found"
+                    },
+                    "500": {
+                        "description": "Internal Server Error"
+                    }
+                }
+            },
+            "delete": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "delete specific item",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "items"
+                ],
+                "summary": "Delete item",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Item UUID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "success",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized"
+                    },
+                    "404": {
+                        "description": "Not Found"
+                    },
+                    "500": {
+                        "description": "Internal Server Error"
+                    }
+                }
+            }
+        },
+        "/purchases": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "find purchases - only returns purchases of the currently logged-in user",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "purchases"
+                ],
+                "summary": "Find purchases",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/models.Purchase"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized"
+                    },
+                    "500": {
+                        "description": "Internal Server Error"
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "create new purchase - only item id is needed in initial creation request",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "purchases"
+                ],
+                "summary": "Create purchase",
+                "parameters": [
+                    {
+                        "description": "Create purchase",
+                        "name": "purchase",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/v1.CreatePurchaseInput"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/models.Purchase"
+                        }
+                    },
+                    "400": {
+                        "description": "final cost exceeds maximum allowed value"
+                    },
+                    "401": {
+                        "description": "Unauthorized"
+                    },
+                    "403": {
+                        "description": "not enough balance"
+                    },
+                    "500": {
+                        "description": "error while creating reader checkout"
+                    }
+                }
+            }
+        },
+        "/purchases/{id}": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "find purchase - only returns purchases of the currently logged-in user",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "purchases"
+                ],
+                "summary": "Find purchase",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Purchase UUID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/models.Purchase"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized"
+                    },
+                    "404": {
+                        "description": "Not Found"
+                    },
+                    "500": {
+                        "description": "Internal Server Error"
+                    }
+                }
+            }
+        },
+        "/readers": {
+            "get": {
+                "description": "Returns all readers",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "sumup"
+                ],
+                "summary": "Find readers",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/models.Reader"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error"
+                    }
+                }
+            }
+        },
+        "/readers/link": {
+            "post": {
+                "description": "Creates and links new reader",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "sumup"
+                ],
+                "summary": "Create reader",
+                "parameters": [
+                    {
+                        "description": "Create reader",
+                        "name": "user",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/readers.CreateReaderBody"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/models.Reader"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request"
+                    },
+                    "500": {
+                        "description": "Internal Server Error"
+                    }
+                }
+            }
+        },
+        "/readers/terminate": {
+            "delete": {
+                "description": "Stops the running reader checkout",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "sumup"
+                ],
+                "summary": "Terminate reader checkout",
+                "parameters": [
+                    {
+                        "description": "Terminate reader input",
+                        "name": "reader",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/v1.TerminateReaderInput"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    },
+                    "500": {
+                        "description": "Internal Server Error"
+                    }
+                }
+            }
+        },
+        "/readers/unlink": {
+            "delete": {
+                "description": "Unlinks the specified reader",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "sumup"
+                ],
+                "summary": "Unlink reader",
+                "parameters": [
+                    {
+                        "description": "Unlink reader input",
+                        "name": "reader",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/v1.UnlinkReaderInput"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    },
+                    "500": {
+                        "description": "Internal Server Error"
+                    }
+                }
+            }
+        },
+        "/readers/{id}": {
+            "get": {
+                "description": "Returns specific reader",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "sumup"
+                ],
+                "summary": "Find reader",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Reader UUID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/models.Reader"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error"
+                    }
+                }
+            }
+        },
+        "/users": {
+            "get": {
+                "description": "Lists all users",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "users"
+                ],
+                "summary": "Find users",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/models.User"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error"
+                    }
+                }
+            },
+            "post": {
+                "description": "creates a new user",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "users"
+                ],
+                "summary": "Create user",
+                "parameters": [
+                    {
+                        "description": "Create user",
+                        "name": "user",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/v1.CreateUserInput"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/models.User"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request"
+                    },
+                    "500": {
+                        "description": "Internal Server Error"
+                    }
+                }
+            }
+        },
+        "/users/{id}": {
+            "get": {
+                "description": "Returns specific user",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "users"
+                ],
+                "summary": "Find user",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "User UUID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/models.User"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error"
+                    }
+                }
+            }
+        }
+    },
+    "definitions": {
+        "gorm.DeletedAt": {
+            "type": "object",
+            "properties": {
+                "time": {
+                    "type": "string"
+                },
+                "valid": {
+                    "description": "Valid is true if Time is not NULL",
+                    "type": "boolean"
+                }
+            }
+        },
+        "models.Item": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "string",
+                    "example": "00000000-0000-0000-0000-000000000000"
+                },
+                "image": {
+                    "type": "string",
+                    "default": "assets/empty.webp"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "price": {
+                    "type": "integer"
+                }
+            }
+        },
+        "models.Meta": {
+            "type": "object",
+            "additionalProperties": {}
+        },
+        "models.PaymentType": {
+            "type": "string",
+            "enum": [
+                "cash",
+                "card",
+                "balance"
+            ],
+            "x-enum-varnames": [
+                "PaymentTypeCash",
+                "PaymentTypeCard",
+                "PaymentTypeBalance"
+            ]
+        },
+        "models.Purchase": {
+            "type": "object",
+            "properties": {
+                "client_transaction_id": {
+                    "type": "string"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "created_by": {
+                    "description": "uuid of user, otherwise null uuid (for guests)",
+                    "type": "string"
+                },
+                "final_cost": {
+                    "type": "integer"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "items": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.Item"
+                    }
+                },
+                "payment_type": {
+                    "$ref": "#/definitions/models.PaymentType"
+                },
+                "refund_amount": {
+                    "description": "adds balance to the user account",
+                    "type": "integer"
+                },
+                "status": {
+                    "$ref": "#/definitions/models.TransactionFullStatus"
+                }
+            }
+        },
+        "models.Reader": {
+            "type": "object",
+            "properties": {
+                "created_at": {
+                    "description": "Reader creation timestamp.",
+                    "type": "string"
+                },
+                "device": {
+                    "description": "Information about the underlying physical device.",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/models.ReaderDevice"
+                        }
+                    ]
+                },
+                "id": {
+                    "description": "Unique identifier of the object.\n\nNote that this identifies the instance of the physical devices pairing with your SumUp account.\n\nIf you DELETE a reader, and pair the device again, the ID will be different. Do not use this ID to refer to\na physical device.\nMin length: 30\nMax length: 30",
+                    "type": "string"
+                },
+                "meta": {
+                    "description": "Set of user-defined key-value pairs attached to the object.\nMax properties: 50",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/models.Meta"
+                        }
+                    ]
+                },
+                "name": {
+                    "description": "Custom human-readable, user-defined name for easier identification of the reader.\nMax length: 500",
+                    "type": "string"
+                },
+                "status": {
+                    "description": "The status of the reader object gives information about the current state of the reader.\n\nPossible values:\n\n- `unknown` - The reader status is unknown.\n- `processing` - The reader is created and waits for the physical device to confirm the pairing.\n- `paired` - The reader is paired with a merchant account and can be used with SumUp APIs.\n- `expired` - The pairing is expired and no longer usable with the account. The resource needs to get recreated",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/models.ReaderStatus"
+                        }
+                    ]
+                },
+                "updated_at": {
+                    "description": "Reader last-modification timestamp.",
+                    "type": "string"
+                }
+            }
+        },
+        "models.ReaderCheckoutStatusChange": {
+            "type": "object",
+            "properties": {
+                "event_type": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "payload": {
+                    "$ref": "#/definitions/models.ReaderCheckoutStatusChangePayload"
+                },
+                "timestamp": {
+                    "type": "string"
+                }
+            }
+        },
+        "models.ReaderCheckoutStatusChangePayload": {
+            "type": "object",
+            "properties": {
+                "client_transaction_id": {
+                    "type": "string"
+                },
+                "merchant_code": {
+                    "type": "string"
+                },
+                "status": {
+                    "$ref": "#/definitions/models.TransactionFullStatus"
+                },
+                "transaction_id": {
+                    "type": "string"
+                }
+            }
+        },
+        "models.ReaderDevice": {
+            "type": "object",
+            "properties": {
+                "identifier": {
+                    "description": "A unique identifier of the physical device (e.g. serial number).",
+                    "type": "string"
+                },
+                "model": {
+                    "description": "Identifier of the model of the device.",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/models.ReaderDeviceModel"
+                        }
+                    ]
+                }
+            }
+        },
+        "models.ReaderDeviceModel": {
+            "type": "string",
+            "enum": [
+                "solo",
+                "virtual-solo"
+            ],
+            "x-enum-varnames": [
+                "ReaderDeviceModelSolo",
+                "ReaderDeviceModelVirtualSolo"
+            ]
+        },
+        "models.ReaderStatus": {
+            "type": "string",
+            "enum": [
+                "expired",
+                "paired",
+                "processing",
+                "unknown"
+            ],
+            "x-enum-varnames": [
+                "ReaderStatusExpired",
+                "ReaderStatusPaired",
+                "ReaderStatusProcessing",
+                "ReaderStatusUnknown"
+            ]
+        },
+        "models.TransactionFullStatus": {
+            "type": "string",
+            "enum": [
+                "cancelled",
+                "failed",
+                "pending",
+                "successful"
+            ],
+            "x-enum-varnames": [
+                "TransactionFullStatusCancelled",
+                "TransactionFullStatusFailed",
+                "TransactionFullStatusPending",
+                "TransactionFullStatusSuccessful"
+            ]
+        },
+        "models.User": {
+            "type": "object",
+            "properties": {
+                "balance": {
+                    "type": "integer"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "deleted_at": {
+                    "$ref": "#/definitions/gorm.DeletedAt"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "image": {
+                    "type": "string",
+                    "default": "assets/empty.webp"
+                },
+                "is_active": {
+                    "type": "boolean"
+                },
+                "is_admin": {
+                    "type": "boolean"
+                },
+                "is_restricted": {
+                    "description": "this entirely disables the balance element for the affected user",
+                    "type": "boolean"
+                },
+                "is_trusted": {
+                    "type": "boolean"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "password": {
+                    "type": "string"
+                },
+                "used_at": {
+                    "type": "string"
+                }
+            }
+        },
+        "readers.CreateReaderBody": {
+            "type": "object",
+            "properties": {
+                "meta": {
+                    "description": "Set of user-defined key-value pairs attached to the object.\nMax properties: 50",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/readers.Meta"
+                        }
+                    ]
+                },
+                "name": {
+                    "description": "Custom human-readable, user-defined name for easier identification of the reader.\nMax length: 500",
+                    "type": "string"
+                },
+                "pairing_code": {
+                    "description": "The pairing code is a 8 or 9 character alphanumeric string that is displayed on a SumUp Device after initiating\nthe pairing. It is used to link the physical device to the created pairing.\nMin length: 8\nMax length: 9",
+                    "type": "string"
+                }
+            }
+        },
+        "readers.Meta": {
+            "type": "object",
+            "additionalProperties": {}
+        },
+        "v1.CreateItemInput": {
+            "type": "object",
+            "required": [
+                "name",
+                "price"
+            ],
+            "properties": {
+                "image": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "price": {
+                    "type": "integer"
+                }
+            }
+        },
+        "v1.CreatePurchaseInput": {
+            "type": "object",
+            "required": [
+                "payment_type"
+            ],
+            "properties": {
+                "amount": {
+                    "description": "used only for adding balance",
+                    "type": "integer"
+                },
+                "items": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.Item"
+                    }
+                },
+                "payment_type": {
+                    "$ref": "#/definitions/models.PaymentType"
+                },
+                "reader_id": {
+                    "type": "string"
+                }
+            }
+        },
+        "v1.CreateUserInput": {
+            "type": "object",
+            "required": [
+                "name"
+            ],
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "password": {
+                    "type": "string"
+                }
+            }
+        },
+        "v1.TerminateReaderInput": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                }
+            }
+        },
+        "v1.UnlinkReaderInput": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                }
+            }
+        }
+    },
+    "securityDefinitions": {
+        "ApiKeyAuth": {
+            "type": "apiKey",
+            "name": "drinks_pos_session",
+            "in": "cookie"
+        }
+    }
+}

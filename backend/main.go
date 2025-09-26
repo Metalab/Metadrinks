@@ -6,6 +6,8 @@ import (
 	"strings"
 
 	jwt "github.com/appleboy/gin-jwt/v2"
+	swaggerFiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
 
 	"metalab/metadrinks/controllers/api"
 	"metalab/metadrinks/controllers/auth"
@@ -16,7 +18,18 @@ import (
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
+
+	_ "metalab/metadrinks/docs"
 )
+
+//	@title			Metadrinks Backend API
+//	@version		1.0
+//	@license.name	GPLv3
+//	@license.url	https://www.gnu.org/licenses/gpl-3.0.html
+
+//	@securityDefinitions.apikey	ApiKeyAuth
+//	@in							cookie
+//	@name						drinks_pos_session
 
 func main() {
 	err := godotenv.Load()
@@ -42,15 +55,15 @@ func main() {
 		}
 	}
 
-	router := gin.Default()
+	r := gin.Default()
 
 	corsConfig := cors.DefaultConfig()
 	corsConfig.AllowAllOrigins = true
 	corsConfig.AddAllowHeaders("Authorization")
-	router.Use(cors.New(corsConfig))
+	r.Use(cors.New(corsConfig))
 
 	trustedProxies := strings.Split(os.Getenv("GIN_TRUSTED_PROXIES"), ",")
-	router.SetTrustedProxies(trustedProxies)
+	r.SetTrustedProxies(trustedProxies)
 
 	models.ConnectDatabase()
 
@@ -61,14 +74,19 @@ func main() {
 	if err != nil {
 		log.Fatal("JWT Error:" + err.Error())
 	}
-	router.Use(auth.HandlerMiddleware(authMiddleware))
+	r.Use(auth.HandlerMiddleware(authMiddleware))
 	auth.JWTAuthMiddleware = authMiddleware
 
-	api.RegisterRoutesAPI(router.Group("/api"))
-	auth.RegisterRoutesAuth(router.Group("/auth"))
-	payment.RegisterRoutesPayment(router.Group("/payment"))
+	api.RegisterRoutesAPI(r.Group("/api"))
+	auth.RegisterRoutesAuth(r.Group("/auth"))
+	payment.RegisterRoutesPayment(r.Group("/payment"))
 
-	err = router.Run("0.0.0.0:8080")
+	swaggerGroup := r.Group("/docs")
+	swaggerGroup.StaticFile("/swagger.json", "docs/swagger.json")
+	swaggerGroup.StaticFile("/swagger.yaml", "docs/swagger.yaml")
+	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
+
+	err = r.Run("0.0.0.0:8080")
 	if err != nil {
 		return
 	}

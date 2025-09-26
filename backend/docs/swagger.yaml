@@ -1,0 +1,703 @@
+definitions:
+  gorm.DeletedAt:
+    properties:
+      time:
+        type: string
+      valid:
+        description: Valid is true if Time is not NULL
+        type: boolean
+    type: object
+  models.Item:
+    properties:
+      id:
+        example: 00000000-0000-0000-0000-000000000000
+        type: string
+      image:
+        default: assets/empty.webp
+        type: string
+      name:
+        type: string
+      price:
+        type: integer
+    type: object
+  models.Meta:
+    additionalProperties: {}
+    type: object
+  models.PaymentType:
+    enum:
+    - cash
+    - card
+    - balance
+    type: string
+    x-enum-varnames:
+    - PaymentTypeCash
+    - PaymentTypeCard
+    - PaymentTypeBalance
+  models.Purchase:
+    properties:
+      client_transaction_id:
+        type: string
+      created_at:
+        type: string
+      created_by:
+        description: uuid of user, otherwise null uuid (for guests)
+        type: string
+      final_cost:
+        type: integer
+      id:
+        type: string
+      items:
+        items:
+          $ref: '#/definitions/models.Item'
+        type: array
+      payment_type:
+        $ref: '#/definitions/models.PaymentType'
+      refund_amount:
+        description: adds balance to the user account
+        type: integer
+      status:
+        $ref: '#/definitions/models.TransactionFullStatus'
+    type: object
+  models.Reader:
+    properties:
+      created_at:
+        description: Reader creation timestamp.
+        type: string
+      device:
+        allOf:
+        - $ref: '#/definitions/models.ReaderDevice'
+        description: Information about the underlying physical device.
+      id:
+        description: |-
+          Unique identifier of the object.
+
+          Note that this identifies the instance of the physical devices pairing with your SumUp account.
+
+          If you DELETE a reader, and pair the device again, the ID will be different. Do not use this ID to refer to
+          a physical device.
+          Min length: 30
+          Max length: 30
+        type: string
+      meta:
+        allOf:
+        - $ref: '#/definitions/models.Meta'
+        description: |-
+          Set of user-defined key-value pairs attached to the object.
+          Max properties: 50
+      name:
+        description: |-
+          Custom human-readable, user-defined name for easier identification of the reader.
+          Max length: 500
+        type: string
+      status:
+        allOf:
+        - $ref: '#/definitions/models.ReaderStatus'
+        description: |-
+          The status of the reader object gives information about the current state of the reader.
+
+          Possible values:
+
+          - `unknown` - The reader status is unknown.
+          - `processing` - The reader is created and waits for the physical device to confirm the pairing.
+          - `paired` - The reader is paired with a merchant account and can be used with SumUp APIs.
+          - `expired` - The pairing is expired and no longer usable with the account. The resource needs to get recreated
+      updated_at:
+        description: Reader last-modification timestamp.
+        type: string
+    type: object
+  models.ReaderCheckoutStatusChange:
+    properties:
+      event_type:
+        type: string
+      id:
+        type: string
+      payload:
+        $ref: '#/definitions/models.ReaderCheckoutStatusChangePayload'
+      timestamp:
+        type: string
+    type: object
+  models.ReaderCheckoutStatusChangePayload:
+    properties:
+      client_transaction_id:
+        type: string
+      merchant_code:
+        type: string
+      status:
+        $ref: '#/definitions/models.TransactionFullStatus'
+      transaction_id:
+        type: string
+    type: object
+  models.ReaderDevice:
+    properties:
+      identifier:
+        description: A unique identifier of the physical device (e.g. serial number).
+        type: string
+      model:
+        allOf:
+        - $ref: '#/definitions/models.ReaderDeviceModel'
+        description: Identifier of the model of the device.
+    type: object
+  models.ReaderDeviceModel:
+    enum:
+    - solo
+    - virtual-solo
+    type: string
+    x-enum-varnames:
+    - ReaderDeviceModelSolo
+    - ReaderDeviceModelVirtualSolo
+  models.ReaderStatus:
+    enum:
+    - expired
+    - paired
+    - processing
+    - unknown
+    type: string
+    x-enum-varnames:
+    - ReaderStatusExpired
+    - ReaderStatusPaired
+    - ReaderStatusProcessing
+    - ReaderStatusUnknown
+  models.TransactionFullStatus:
+    enum:
+    - cancelled
+    - failed
+    - pending
+    - successful
+    type: string
+    x-enum-varnames:
+    - TransactionFullStatusCancelled
+    - TransactionFullStatusFailed
+    - TransactionFullStatusPending
+    - TransactionFullStatusSuccessful
+  models.User:
+    properties:
+      balance:
+        type: integer
+      created_at:
+        type: string
+      deleted_at:
+        $ref: '#/definitions/gorm.DeletedAt'
+      id:
+        type: string
+      image:
+        default: assets/empty.webp
+        type: string
+      is_active:
+        type: boolean
+      is_admin:
+        type: boolean
+      is_restricted:
+        description: this entirely disables the balance element for the affected user
+        type: boolean
+      is_trusted:
+        type: boolean
+      name:
+        type: string
+      password:
+        type: string
+      used_at:
+        type: string
+    type: object
+  readers.CreateReaderBody:
+    properties:
+      meta:
+        allOf:
+        - $ref: '#/definitions/readers.Meta'
+        description: |-
+          Set of user-defined key-value pairs attached to the object.
+          Max properties: 50
+      name:
+        description: |-
+          Custom human-readable, user-defined name for easier identification of the reader.
+          Max length: 500
+        type: string
+      pairing_code:
+        description: |-
+          The pairing code is a 8 or 9 character alphanumeric string that is displayed on a SumUp Device after initiating
+          the pairing. It is used to link the physical device to the created pairing.
+          Min length: 8
+          Max length: 9
+        type: string
+    type: object
+  readers.Meta:
+    additionalProperties: {}
+    type: object
+  v1.CreateItemInput:
+    properties:
+      image:
+        type: string
+      name:
+        type: string
+      price:
+        type: integer
+    required:
+    - name
+    - price
+    type: object
+  v1.CreatePurchaseInput:
+    properties:
+      amount:
+        description: used only for adding balance
+        type: integer
+      items:
+        items:
+          $ref: '#/definitions/models.Item'
+        type: array
+      payment_type:
+        $ref: '#/definitions/models.PaymentType'
+      reader_id:
+        type: string
+    required:
+    - payment_type
+    type: object
+  v1.CreateUserInput:
+    properties:
+      name:
+        type: string
+      password:
+        type: string
+    required:
+    - name
+    type: object
+  v1.TerminateReaderInput:
+    properties:
+      id:
+        type: string
+      name:
+        type: string
+    type: object
+  v1.UnlinkReaderInput:
+    properties:
+      id:
+        type: string
+      name:
+        type: string
+    type: object
+info:
+  contact: {}
+  license:
+    name: GPLv3
+    url: https://www.gnu.org/licenses/gpl-3.0.html
+  title: Metadrinks Backend API
+  version: "1.0"
+paths:
+  /callback:
+    post:
+      consumes:
+      - application/json
+      description: Processes the incoming sumup webhook
+      parameters:
+      - description: Webhook data
+        in: body
+        name: webhook
+        required: true
+        schema:
+          $ref: '#/definitions/models.ReaderCheckoutStatusChange'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+        "500":
+          description: Internal Server Error
+      summary: Get incoming webhook
+      tags:
+      - sumup
+  /items:
+    get:
+      consumes:
+      - application/json
+      description: get items
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.Item'
+            type: array
+        "500":
+          description: Internal Server Error
+      summary: Find items
+      tags:
+      - items
+    post:
+      consumes:
+      - application/json
+      description: create new item
+      parameters:
+      - description: Create item
+        in: body
+        name: item
+        required: true
+        schema:
+          $ref: '#/definitions/v1.CreateItemInput'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.Item'
+        "401":
+          description: Unauthorized
+        "500":
+          description: Internal Server Error
+      security:
+      - ApiKeyAuth: []
+      summary: Create item
+      tags:
+      - items
+  /items/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: delete specific item
+      parameters:
+      - description: Item UUID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: success
+          schema:
+            type: string
+        "401":
+          description: Unauthorized
+        "404":
+          description: Not Found
+        "500":
+          description: Internal Server Error
+      security:
+      - ApiKeyAuth: []
+      summary: Delete item
+      tags:
+      - items
+    get:
+      consumes:
+      - application/json
+      description: get specific item
+      parameters:
+      - description: Item UUID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.Item'
+        "404":
+          description: Not Found
+        "500":
+          description: Internal Server Error
+      summary: Find item
+      tags:
+      - items
+    put:
+      consumes:
+      - application/json
+      description: update specific item
+      parameters:
+      - description: Item UUID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.Item'
+        "401":
+          description: Unauthorized
+        "404":
+          description: Not Found
+        "500":
+          description: Internal Server Error
+      security:
+      - ApiKeyAuth: []
+      summary: Update item
+      tags:
+      - items
+  /purchases:
+    get:
+      consumes:
+      - application/json
+      description: find purchases - only returns purchases of the currently logged-in
+        user
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.Purchase'
+            type: array
+        "401":
+          description: Unauthorized
+        "500":
+          description: Internal Server Error
+      security:
+      - ApiKeyAuth: []
+      summary: Find purchases
+      tags:
+      - purchases
+    post:
+      consumes:
+      - application/json
+      description: create new purchase - only item id is needed in initial creation
+        request
+      parameters:
+      - description: Create purchase
+        in: body
+        name: purchase
+        required: true
+        schema:
+          $ref: '#/definitions/v1.CreatePurchaseInput'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.Purchase'
+        "400":
+          description: final cost exceeds maximum allowed value
+        "401":
+          description: Unauthorized
+        "403":
+          description: not enough balance
+        "500":
+          description: error while creating reader checkout
+      security:
+      - ApiKeyAuth: []
+      summary: Create purchase
+      tags:
+      - purchases
+  /purchases/{id}:
+    get:
+      consumes:
+      - application/json
+      description: find purchase - only returns purchases of the currently logged-in
+        user
+      parameters:
+      - description: Purchase UUID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.Purchase'
+        "401":
+          description: Unauthorized
+        "404":
+          description: Not Found
+        "500":
+          description: Internal Server Error
+      security:
+      - ApiKeyAuth: []
+      summary: Find purchase
+      tags:
+      - purchases
+  /readers:
+    get:
+      consumes:
+      - application/json
+      description: Returns all readers
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.Reader'
+            type: array
+        "500":
+          description: Internal Server Error
+      summary: Find readers
+      tags:
+      - sumup
+  /readers/{id}:
+    get:
+      consumes:
+      - application/json
+      description: Returns specific reader
+      parameters:
+      - description: Reader UUID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.Reader'
+        "500":
+          description: Internal Server Error
+      summary: Find reader
+      tags:
+      - sumup
+  /readers/link:
+    post:
+      consumes:
+      - application/json
+      description: Creates and links new reader
+      parameters:
+      - description: Create reader
+        in: body
+        name: user
+        required: true
+        schema:
+          $ref: '#/definitions/readers.CreateReaderBody'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.Reader'
+        "400":
+          description: Bad Request
+        "500":
+          description: Internal Server Error
+      summary: Create reader
+      tags:
+      - sumup
+  /readers/terminate:
+    delete:
+      consumes:
+      - application/json
+      description: Stops the running reader checkout
+      parameters:
+      - description: Terminate reader input
+        in: body
+        name: reader
+        required: true
+        schema:
+          $ref: '#/definitions/v1.TerminateReaderInput'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+        "500":
+          description: Internal Server Error
+      summary: Terminate reader checkout
+      tags:
+      - sumup
+  /readers/unlink:
+    delete:
+      consumes:
+      - application/json
+      description: Unlinks the specified reader
+      parameters:
+      - description: Unlink reader input
+        in: body
+        name: reader
+        required: true
+        schema:
+          $ref: '#/definitions/v1.UnlinkReaderInput'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+        "500":
+          description: Internal Server Error
+      summary: Unlink reader
+      tags:
+      - sumup
+  /users:
+    get:
+      consumes:
+      - application/json
+      description: Lists all users
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.User'
+            type: array
+        "500":
+          description: Internal Server Error
+      summary: Find users
+      tags:
+      - users
+    post:
+      consumes:
+      - application/json
+      description: creates a new user
+      parameters:
+      - description: Create user
+        in: body
+        name: user
+        required: true
+        schema:
+          $ref: '#/definitions/v1.CreateUserInput'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.User'
+        "400":
+          description: Bad Request
+        "500":
+          description: Internal Server Error
+      summary: Create user
+      tags:
+      - users
+  /users/{id}:
+    get:
+      consumes:
+      - application/json
+      description: Returns specific user
+      parameters:
+      - description: User UUID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.User'
+        "500":
+          description: Internal Server Error
+      summary: Find user
+      tags:
+      - users
+securityDefinitions:
+  ApiKeyAuth:
+    in: cookie
+    name: drinks_pos_session
+    type: apiKey
+swagger: "2.0"

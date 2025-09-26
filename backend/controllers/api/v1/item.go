@@ -15,6 +15,24 @@ type CreateItemInput struct {
 	Price uint   `json:"price" binding:"required"`
 }
 
+//	@BasePath	/api/v1
+
+// CreateItem godoc
+//
+//	@Summary		Create item
+//	@Description	create new item
+//	@Tags			items
+//	@Accept			json
+//	@Produce		json
+//	@Success		200	{object}	models.Item
+//	@Failure		401
+//	@Failure		500
+//
+//	@Param			item	body	CreateItemInput	true	"Create item"
+//
+//	@Security		ApiKeyAuth
+//
+//	@Router			/items [post]
 func CreateItem(c *gin.Context) {
 	var input CreateItemInput
 	if err := c.ShouldBindJSON(&input); err != nil {
@@ -24,13 +42,23 @@ func CreateItem(c *gin.Context) {
 
 	item := models.Item{Name: input.Name, Image: input.Image, Price: input.Price}
 	if err := models.DB.Create(&item).Error; err != nil {
-		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.AbortWithStatus(http.StatusBadRequest /*, gin.H{"error": err.Error()}*/)
 		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{"data": item})
 }
 
+// FindItems godoc
+//
+//	@Summary		Find items
+//	@Description	get items
+//	@Tags			items
+//	@Accept			json
+//	@Produce		json
+//	@Success		200	{object}	[]models.Item
+//	@Failure		500
+//	@Router			/items [get]
 func FindItems(c *gin.Context) {
 	var items []models.Item
 	models.DB.Find(&items).Order("sort_index ASC")
@@ -39,11 +67,25 @@ func FindItems(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"data": items})
 }
 
+// FindItem godoc
+//
+//	@Summary		Find item
+//	@Description	get specific item
+//	@Tags			items
+//	@Accept			json
+//	@Produce		json
+//	@Success		200	{object}	models.Item
+//	@Failure		404
+//	@Failure		500
+//
+//	@Param			id	path	string	true	"Item UUID"
+//
+//	@Router			/items/{id} [get]
 func FindItem(c *gin.Context) {
 	var item models.Item
 
 	if err := models.DB.Where("item_id = ?", c.Param("id")).First(&item).Error; err != nil {
-		c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"error": err.Error()})
+		c.AbortWithStatus(http.StatusNotFound)
 		return
 	}
 
@@ -67,10 +109,27 @@ type UpdateItemInput struct {
 	Price uint   `json:"price,omitempty"`
 }
 
+// UpdateItem godoc
+//
+//	@Summary		Update item
+//	@Description	update specific item
+//	@Tags			items
+//	@Accept			json
+//	@Produce		json
+//	@Success		200	{object}	models.Item
+//	@Failure		401
+//	@Failure		404
+//	@Failure		500
+//
+//	@Security		ApiKeyAuth
+//
+//	@Param			id	path	string	true	"Item UUID"
+//
+//	@Router			/items/{id} [put]
 func UpdateItem(c *gin.Context) {
 	var item models.Item
 	if err := models.DB.Where("item_id = ?", c.Param("id")).First(&item).Error; err != nil {
-		c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"error": "record not found"})
+		c.AbortWithStatus(http.StatusNotFound)
 		return
 	}
 
@@ -87,10 +146,27 @@ func UpdateItem(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"data": item})
 }
 
+// DeleteItem godoc
+//
+//	@Summary		Delete item
+//	@Description	delete specific item
+//	@Tags			items
+//	@Accept			json
+//	@Produce		json
+//	@Success		200	{string} string	"success"
+//	@Failure		401
+//	@Failure		404
+//	@Failure		500
+//
+//	@Security		ApiKeyAuth
+//
+//	@Param			id	path	string	true	"Item UUID"
+//
+//	@Router			/items/{id} [delete]
 func DeleteItem(c *gin.Context) {
 	var item models.Item
 	if err := models.DB.Where("item_id = ?", c.Param("id")).First(&item).Error; err != nil {
-		c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"error": "record not found"})
+		c.AbortWithStatus(http.StatusNotFound)
 		return
 	}
 

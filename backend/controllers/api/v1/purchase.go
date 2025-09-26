@@ -23,6 +23,29 @@ type CreatePurchaseInput struct {
 	ReaderId    string             `json:"reader_id"`
 }
 
+// CreatePurchase godoc
+//
+//	@Summary		Create purchase
+//	@Description	create new purchase - only item id is needed in initial creation request
+//	@Tags			purchases
+//	@Accept			json
+//	@Produce		json
+//	@Success		200	{object}	models.Purchase
+//	@Failure		400 "Bad Request"
+//	@Failure		400	"only one of 'items' and 'amount' can be specified"
+//	@Failure		400	"final cost exceeds maximum allowed value"
+//	@Failure		401 "Unauthorized"
+//	@Failure		403 "Forbidden"
+//	@Failure		403	"user is restricted"
+//	@Failure		403	"not enough balance"
+//	@Failure		500 "Internal Server Error"
+//	@Failure		500	"error while creating reader checkout"
+//
+//	@Security		ApiKeyAuth
+//
+//	@Param			purchase	body	CreatePurchaseInput	true	"Create purchase"
+//
+//	@Router			/purchases [post]
 func CreatePurchase(c *gin.Context) {
 	var input CreatePurchaseInput
 	var finalCost uint = 0
@@ -35,17 +58,17 @@ func CreatePurchase(c *gin.Context) {
 	userTrust := userClaims["trusted"].(bool)
 
 	if err := c.ShouldBindJSON(&input); err != nil {
-		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.AbortWithError(http.StatusBadRequest, err)
 		return
 	}
 
 	if input.Amount != 0 && len(input.Items) != 0 {
-		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "only one of 'items' and 'amount' can be specified"})
+		c.AbortWithError(http.StatusBadRequest, fmt.Errorf("only one of 'items' and 'amount' can be specified"))
 		return
 	}
 
 	if input.Amount != 0 && userClaims["restricted"].(bool) {
-		c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"error": "user is restricted"})
+		c.AbortWithError(http.StatusForbidden, fmt.Errorf("user is restricted"))
 		return
 	}
 
@@ -64,7 +87,7 @@ func CreatePurchase(c *gin.Context) {
 		clientTransactionId, err = libs.StartReaderCheckout(input.ReaderId, finalCost, &finalTransactionDescription)
 		if err != nil {
 			fmt.Printf("error while creating reader checkout: %s\n", err.Error())
-			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			c.AbortWithError(http.StatusInternalServerError, err)
 			return
 		}
 	case models.PaymentTypeCash:
@@ -72,21 +95,21 @@ func CreatePurchase(c *gin.Context) {
 	case models.PaymentTypeBalance:
 		if balance, err := GetUserBalance(userId); err == nil {
 			if finalCost >= math.MaxInt32 {
-				c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "final cost exceeds maximum allowed value"})
+				c.AbortWithError(http.StatusBadRequest, fmt.Errorf("final cost exceeds maximum allowed value"))
 				return
 			}
 			if (*balance-int(finalCost) < 0) && !userTrust {
-				c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"error": "not enough balance"})
+				c.AbortWithError(http.StatusForbidden, fmt.Errorf("not enough balance"))
 				return
 			} else {
 				transactionStatus = sumupmodels.TransactionFullStatusSuccessful
 				UpdateUserBalance(userId, -int(finalCost))
 			}
 		} else if err.Error() == "user is restricted" {
-			c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"error": err.Error()})
+			c.AbortWithError(http.StatusForbidden, err)
 			return
 		} else {
-			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			c.AbortWithError(http.StatusInternalServerError, err)
 			return
 		}
 	}
@@ -100,7 +123,20 @@ func CreatePurchase(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"data": purchase})
 }
 
-// FindPurchases only returns purchases of the currently logged-in user
+// FindPurchases godoc
+//
+//	@Summary		Find purchases
+//	@Description	find purchases - only returns purchases of the currently logged-in user
+//	@Tags			purchases
+//	@Accept			json
+//	@Produce		json
+//	@Success		200	{object}	[]models.Purchase
+//	@Failure		401
+//	@Failure		500
+//
+//	@Security		ApiKeyAuth
+//
+//	@Router			/purchases [get]
 func FindPurchases(c *gin.Context) {
 	var purchases []models.Purchase
 	userClaims := jwt.ExtractClaims(c)
@@ -109,7 +145,7 @@ func FindPurchases(c *gin.Context) {
 	limit := c.DefaultQuery("limit", "-1")
 	limitInt, err := strconv.Atoi(limit)
 	if err != nil {
-		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.AbortWithError(http.StatusBadRequest, err)
 		return
 	}
 
@@ -119,13 +155,30 @@ func FindPurchases(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"data": purchases})
 }
 
+// FindPurchase godoc
+//
+//	@Summary		Find purchase
+//	@Description	find purchase - only returns purchases of the currently logged-in user
+//	@Tags			purchases
+//	@Accept			json
+//	@Produce		json
+//	@Success		200	{object}	models.Purchase
+//	@Failure		401
+//	@Failure		404
+//	@Failure		500
+//
+//	@Param			id	path	string	true	"Purchase UUID"
+//
+//	@Security		ApiKeyAuth
+//
+//	@Router			/purchases/{id} [get]
 func FindPurchase(c *gin.Context) {
 	var purchase models.Purchase
 	userClaims := jwt.ExtractClaims(c)
 	userId := uuid.MustParse(userClaims["userId"].(string))
 
 	if err := models.DB.Where("created_by = ?", userId).Where("purchase_id = ?", c.Param("id")).First(&purchase).Error; err != nil {
-		c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"error": err.Error()})
+		c.AbortWithStatus(http.StatusNotFound)
 		return
 	}
 

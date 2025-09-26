@@ -18,8 +18,8 @@ func RegisterRoutesV1(r *gin.RouterGroup) {
 	u.POST("/", CreateUser)
 	u.GET("/", FindUsers)
 	u.GET("/:id", FindUser)
-	u.PUT("/:id", auth.JWTAuthMiddleware.MiddlewareFunc(), auth.IsUserAdmin(), UpdateUser)
-	u.DELETE("//:id", auth.JWTAuthMiddleware.MiddlewareFunc(), auth.IsUserAdmin(), DeleteUser)
+	//u.PUT("/:id", auth.JWTAuthMiddleware.MiddlewareFunc(), auth.IsUserAdmin(), UpdateUser)
+	//u.DELETE("//:id", auth.JWTAuthMiddleware.MiddlewareFunc(), auth.IsUserAdmin(), DeleteUser)
 
 	p := r.Group("purchases")
 	p.POST("/", auth.JWTAuthMiddleware.MiddlewareFunc(), CreatePurchase)
