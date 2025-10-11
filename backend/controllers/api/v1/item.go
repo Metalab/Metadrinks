@@ -10,9 +10,10 @@ import (
 )
 
 type CreateItemInput struct {
-	Name  string `json:"name" binding:"required"`
-	Image string `json:"image"`
-	Price uint   `json:"price" binding:"required"`
+	Name    string `json:"name" binding:"required"`
+	Image   string `json:"image"`
+	Price   uint   `json:"price" binding:"required"`
+	Barcode string `json:"barcode"`
 }
 
 //	@BasePath	/api/v1
@@ -40,7 +41,7 @@ func CreateItem(c *gin.Context) {
 		return
 	}
 
-	item := models.Item{Name: input.Name, Image: input.Image, Price: input.Price}
+	item := models.Item{Name: input.Name, Image: input.Image, Price: input.Price, Barcode: input.Barcode}
 	if err := models.DB.Create(&item).Error; err != nil {
 		c.AbortWithStatus(http.StatusBadRequest /*, gin.H{"error": err.Error()}*/)
 		return
@@ -61,7 +62,7 @@ func CreateItem(c *gin.Context) {
 //	@Router			/items [get]
 func FindItems(c *gin.Context) {
 	var items []models.Item
-	models.DB.Find(&items).Order("sort_index ASC")
+	models.DB.Find(&items)
 
 	c.Header("Content-Type", "application/json")
 	c.JSON(http.StatusOK, gin.H{"data": items})
@@ -104,9 +105,10 @@ func FindItemById(id uuid.UUID) models.Item {
 }
 
 type UpdateItemInput struct {
-	Name  string `json:"name,omitempty"`
-	Image string `json:"image,omitempty"`
-	Price uint   `json:"price,omitempty"`
+	Name    string `json:"name,omitempty"`
+	Image   string `json:"image,omitempty"`
+	Price   uint   `json:"price,omitempty"`
+	Barcode string `json:"barcode,omitempty"`
 }
 
 // UpdateItem godoc
@@ -140,7 +142,7 @@ func UpdateItem(c *gin.Context) {
 		return
 	}
 
-	updatedItem := models.Item{Name: input.Name, Image: input.Image, Price: input.Price}
+	updatedItem := models.Item{Name: input.Name, Image: input.Image, Price: input.Price, Barcode: input.Barcode}
 
 	models.DB.Model(&item).Updates(&updatedItem)
 	c.JSON(http.StatusOK, gin.H{"data": item})
