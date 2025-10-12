@@ -8,5 +8,4 @@ func RegisterRoutesAuth(r *gin.RouterGroup) {
 	r.POST("/login", JWTAuthMiddleware.LoginHandler)
 	r.POST("/logout", JWTAuthMiddleware.LogoutHandler)
 	r.GET("/refresh", JWTAuthMiddleware.RefreshHandler)
-	r.GET("/info", InfoHandler)
 }
