@@ -35,8 +35,8 @@ func InitParams() *jwt.GinJWTMiddleware {
 		Realm:            "drinks-pos",
 		Key:              []byte(os.Getenv("JWT_SECRET")),
 		SigningAlgorithm: "HS512",
-		Timeout:          time.Minute * 1,
-		MaxRefresh:       time.Minute * 1,
+		Timeout:          time.Minute * 5,
+		MaxRefresh:       time.Minute * 5,
 		// IdentityKey:      identityKey,
 		PayloadFunc: payloadFunc(),
 
@@ -103,15 +103,14 @@ func unauthorized() func(c *gin.Context, code int, message string) {
 	}
 }
 
-/*func HelloHandler(c *gin.Context) {
+func InfoHandler(c *gin.Context) {
 	claims := jwt.ExtractClaims(c)
-	user, _ := c.Get(identityKey)
 	c.JSON(200, gin.H{
-		"userID":   claims[identityKey],
-		"userName": user.(*models.User).Name,
-		"text":     "Hello World.",
+		"id":    claims["userId"],
+		"name":  claims["sub"],
+		"admin": claims["admin"].(bool),
 	})
-}*/
+}
 
 func VerifyPassword(password, hashedPassword string) error {
 	return bcrypt.CompareHashAndPassword([]byte(hashedPassword), []byte(password))
@@ -133,7 +132,7 @@ func TryAuthenticate(username, password string) (*models.User, error) {
 
 func IsUserAdmin() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		if jwt.ExtractClaims(c)["admin"].(bool) != true {
+		if !jwt.ExtractClaims(c)["admin"].(bool) {
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
 			return
 		}
