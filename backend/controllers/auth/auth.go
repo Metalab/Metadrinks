@@ -2,13 +2,11 @@ package auth
 
 import (
 	"log"
+	"metalab/metadrinks/libs/crypto"
+	"metalab/metadrinks/models"
 	"net/http"
 	"os"
 	"time"
-
-	"golang.org/x/crypto/bcrypt"
-
-	"metalab/metadrinks/models"
 
 	jwt "github.com/appleboy/gin-jwt/v2"
 	"github.com/gin-gonic/gin"
@@ -103,19 +101,6 @@ func unauthorized() func(c *gin.Context, code int, message string) {
 	}
 }
 
-func InfoHandler(c *gin.Context) {
-	claims := jwt.ExtractClaims(c)
-	c.JSON(200, gin.H{
-		"id":    claims["userId"],
-		"name":  claims["sub"],
-		"admin": claims["admin"].(bool),
-	})
-}
-
-func VerifyPassword(password, hashedPassword string) error {
-	return bcrypt.CompareHashAndPassword([]byte(hashedPassword), []byte(password))
-}
-
 func TryAuthenticate(username, password string) (*models.User, error) {
 	var user models.User
 
@@ -123,10 +108,12 @@ func TryAuthenticate(username, password string) (*models.User, error) {
 		return nil, err
 	}
 
-	if err := VerifyPassword(password, user.Password); err != nil {
+	if err := crypto.AuthenticateUser(user.Password, password); err != nil {
 		return nil, err
 	}
 
+	user.UsedAt = time.Now().Local()
+	models.DB.Save(&user)
 	return &user, nil
 }
 

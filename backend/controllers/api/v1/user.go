@@ -2,6 +2,7 @@ package v1
 
 import (
 	"fmt"
+	"metalab/metadrinks/libs/crypto"
 	"net/http"
 	"time"
 
@@ -9,7 +10,6 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
-	"golang.org/x/crypto/bcrypt"
 )
 
 type CreateUserInput struct {
@@ -40,12 +40,12 @@ func CreateUser(c *gin.Context) {
 
 	userId := uuid.New()
 
-	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(input.Password), bcrypt.DefaultCost)
+	hashedPassword, err := crypto.HashPasswordSecure(input.Password) //bcrypt.GenerateFromPassword([]byte(input.Password), bcrypt.DefaultCost)
 	if err != nil {
 		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	user := models.User{UserID: userId, Name: input.Name, Password: string(hashedPassword), UsedAt: time.Now().Local()}
+	user := models.User{UserID: userId, Name: input.Name, Password: hashedPassword, UsedAt: time.Now().Local()}
 	models.DB.Create(&user)
 
 	c.JSON(http.StatusOK, gin.H{"data": user})

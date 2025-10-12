@@ -2,13 +2,13 @@ package models
 
 import (
 	"fmt"
+	"metalab/metadrinks/libs/crypto"
 	"os"
 	"time"
 
 	models "metalab/metadrinks/models/sumup"
 
 	"github.com/google/uuid"
-	"golang.org/x/crypto/bcrypt"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
@@ -27,7 +27,7 @@ func ConnectDatabase() {
 	database.AutoMigrate(&Purchase{})
 	database.AutoMigrate(&models.Reader{})
 
-	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(""), bcrypt.DefaultCost)
+	hashedPassword, err := crypto.HashPasswordSecure("") //bcrypt.GenerateFromPassword([]byte(""), bcrypt.DefaultCost)
 	if err != nil {
 		fmt.Println("Error generating password hash: ", err)
 		return
