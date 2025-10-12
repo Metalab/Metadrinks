@@ -42,6 +42,7 @@ func main() {
 		"SUMUP_RETURN_URL",
 		"JWT_SECRET",
 		"GIN_TRUSTED_PROXIES",
+		"CORS_ALLOWED_ORIGINS",
 		"DB_HOST",
 		"DB_USER",
 		"DB_PASSWORD",
@@ -58,8 +59,14 @@ func main() {
 	r := gin.Default()
 
 	corsConfig := cors.DefaultConfig()
-	corsConfig.AllowAllOrigins = true
-	corsConfig.AddAllowHeaders("Authorization")
+	//corsConfig.AllowOrigins = strings.Split(os.Getenv("CORS_ALLOWED_ORIGINS"), ",")
+	corsConfig.AllowHeaders = []string{"Authorization", "Content-Type"}
+	corsConfig.AllowCredentials = true
+	corsConfig.AllowPrivateNetwork = true
+	corsConfig.AllowOriginFunc = func(origin string) bool {
+		return true
+	}
+	// Use the CORS middleware with the specified configuration
 	r.Use(cors.New(corsConfig))
 
 	trustedProxies := strings.Split(os.Getenv("GIN_TRUSTED_PROXIES"), ",")
