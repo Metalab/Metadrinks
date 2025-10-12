@@ -64,11 +64,11 @@ func CreateUser(c *gin.Context) {
 //
 //	@Router			/users [get]
 func FindUsers(c *gin.Context) {
-	var users []map[string]interface{}
-	models.DB.Model(&models.User{}).Find(&users).Order("used_at DESC")
+	var users []models.User
+	models.DB.Order("used_at DESC").Find(&users)
 
-	for _, user := range users { // do not return the user password
-		delete(user, "password")
+	for i := range users { // do not return the user password
+		users[i].Password = ""
 	}
 
 	c.Header("Content-Type", "application/json")
