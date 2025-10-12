@@ -17,10 +17,15 @@ import (
 )
 
 type CreatePurchaseInput struct {
-	Items       []models.Item      `json:"items"`
-	PaymentType models.PaymentType `json:"payment_type" binding:"required"`
-	Amount      uint               `json:"amount"` // used only for adding balance
-	ReaderId    string             `json:"reader_id"`
+	Items       []PurchaseItemInput `json:"items"`
+	PaymentType models.PaymentType  `json:"payment_type" binding:"required"`
+	Amount      uint                `json:"amount"` // used only for adding balance
+	ReaderId    string              `json:"reader_id"`
+}
+
+type PurchaseItemInput struct {
+	ItemId uuid.UUID `json:"id" binding:"required"`
+	Amount uint      `json:"amount" binding:"required"` // quantity/amount from frontend
 }
 
 // CreatePurchase godoc
@@ -75,8 +80,12 @@ func CreatePurchase(c *gin.Context) {
 	for _, v := range input.Items {
 		item := FindItemById(v.ItemId)
 		finalCost += item.Price
-		returnedItemsArray = append(returnedItemsArray, models.Item{ItemId: v.ItemId, Name: item.Name, Price: item.Price})
-		transactionDescription = append(transactionDescription, fmt.Sprintf("%s", item.Name))
+		returnedItemsArray = append(returnedItemsArray, models.Item{ItemId: v.ItemId, Name: item.Name, Price: item.Price, Amount: v.Amount})
+		if v.Amount > 1 {
+			transactionDescription = append(transactionDescription, fmt.Sprintf("%s x%d ", item.Name, v.Amount))
+		} else {
+			transactionDescription = append(transactionDescription, fmt.Sprintf("%s ", item.Name))
+		}
 	}
 
 	finalTransactionDescription := strings.Join(transactionDescription[:], ", ")
