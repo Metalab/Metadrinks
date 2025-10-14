@@ -79,7 +79,7 @@ func CreatePurchase(c *gin.Context) {
 
 	for _, v := range input.Items {
 		item := FindItemById(v.ItemId)
-		finalCost += item.Price
+		finalCost += item.Price * v.Amount
 		returnedItemsArray = append(returnedItemsArray, models.Item{ItemId: v.ItemId, Name: item.Name, Price: item.Price, Amount: v.Amount})
 		if v.Amount > 1 {
 			transactionDescription = append(transactionDescription, fmt.Sprintf("%s x%d ", item.Name, v.Amount))
