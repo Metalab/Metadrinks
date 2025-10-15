@@ -8,10 +8,12 @@ import {
 } from "@/components/ui/popover";
 import { PaymentDialog } from "./payment-dialog";
 import { useSelectedItems } from "./selected-items-context";
+import { useUser } from "./user-context";
 import React from "react";
 
 export default function CheckoutButton() {
   const { selectedItems, clearItems } = useSelectedItems();
+  const { user } = useUser();
 
   async function handleComplete(result: { method: string; data?: any }) {
     if (result.method !== "cash") return;
@@ -102,6 +104,7 @@ export default function CheckoutButton() {
                   <Button
                     className="w-full items-center justify-center"
                     variant="outline"
+                    disabled={user?.is_restricted ?? true}
                   >
                     Balance
                   </Button>
