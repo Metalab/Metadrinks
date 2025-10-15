@@ -8,7 +8,7 @@ import {
 } from "@/components/ui/popover";
 import { PaymentDialog } from "./payment-dialog";
 import { useSelectedItems } from "./selected-items-context";
-import React, { useEffect, useState } from "react";
+import React from "react";
 
 export default function CheckoutButton() {
   const { selectedItems, clearItems } = useSelectedItems();
@@ -84,28 +84,30 @@ export default function CheckoutButton() {
                 }
                 onComplete={handleComplete}
               />
-              <Button
-                className="w-full items-center justify-center opacity-50 cursor-not-allowed"
-                variant="outline"
-                disabled={true}
-                title="Coming soon"
-              >
-                Card
-                <span className="ml-2 text-xs text-muted-foreground">
-                  (Coming soon)
-                </span>
-              </Button>
-              <Button
-                className="w-full items-center justify-center opacity-50 cursor-not-allowed"
-                variant="outline"
-                disabled={true}
-                title="Coming soon"
-              >
-                Balance
-                <span className="ml-2 text-xs text-muted-foreground">
-                  (Coming soon)
-                </span>
-              </Button>
+              <PaymentDialog
+                method="card"
+                trigger={
+                  <Button
+                    className="w-full items-center justify-center"
+                    variant="outline"
+                  >
+                    Card
+                  </Button>
+                }
+                onComplete={handleComplete}
+              />
+              <PaymentDialog
+                method="balance"
+                trigger={
+                  <Button
+                    className="w-full items-center justify-center"
+                    variant="outline"
+                  >
+                    Balance
+                  </Button>
+                }
+                onComplete={handleComplete}
+              />
             </div>
           </div>
         </PopoverContent>
