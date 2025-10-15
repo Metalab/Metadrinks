@@ -146,6 +146,21 @@ function CardForm({ onComplete }: { onComplete?: (d: any) => void }) {
     }
   };
 
+  const terminatePayment = async () => {
+    try {
+      await fetch(`${config.apiBaseUrl}/payment/v1/readers/terminate`, {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+        body: JSON.stringify({ name: "drinks" }),
+      });
+    } catch (err) {
+      console.error("Failed to terminate payment:", err);
+    }
+  };
+
   const getStatusMessage = () => {
     switch (status) {
       case "starting":
@@ -201,7 +216,15 @@ function CardForm({ onComplete }: { onComplete?: (d: any) => void }) {
 
       <DialogFooter className="pt-4">
         <DialogClose asChild>
-          <Button variant="outline" disabled={isProcessing}>
+          <Button
+            variant="outline"
+            //disabled={isProcessing}
+            onClick={() => {
+              if (isProcessing || status === "pending") {
+                terminatePayment();
+              }
+            }}
+          >
             Cancel
           </Button>
         </DialogClose>
