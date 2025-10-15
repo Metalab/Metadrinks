@@ -20,6 +20,8 @@ type SelectedItemsContextType = {
   removeItem: (itemId: string) => void;
   removeOneItem: (itemId: string) => void;
   clearItems: () => void;
+  totalInCents: number;
+  totalInEuros: string;
 };
 
 const SelectedItemsContext = createContext<
@@ -59,13 +61,27 @@ export function SelectedItemsProvider({ children }: { children: ReactNode }) {
     });
   };
 
+  const totalInCents = selectedItems.reduce(
+    (sum, item) => sum + item.price * item.quantity,
+    0
+  );
+  const totalInEuros = (totalInCents / 100).toFixed(2);
+
   const clearItems = () => {
     setSelectedItems([]);
   };
 
   return (
     <SelectedItemsContext.Provider
-      value={{ selectedItems, addItem, removeItem, removeOneItem, clearItems }}
+      value={{
+        selectedItems,
+        addItem,
+        removeItem,
+        removeOneItem,
+        clearItems,
+        totalInCents,
+        totalInEuros,
+      }}
     >
       {children}
     </SelectedItemsContext.Provider>

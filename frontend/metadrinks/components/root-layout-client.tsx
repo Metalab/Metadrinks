@@ -4,7 +4,8 @@ import { ThemeProvider } from "@/components/theme-provider";
 import Header from "@/components/header";
 import { AuthProvider } from "@/components/auth-context";
 import { UserProvider } from "@/components/user-context";
-import { usePathname } from "next/navigation";
+import { SSEProvider } from "@/components/sse-context";
+import SSEConnectionStatus from "@/components/sse-connection-status";
 import { Toaster } from "@/components/ui/sonner";
 
 export default function RootLayoutClient({
@@ -21,9 +22,12 @@ export default function RootLayoutClient({
     >
       <UserProvider>
         <AuthProvider>
-          <Header showSidebarTrigger={false} />
-          {children}
-          <Toaster />
+          <SSEProvider>
+            <Header showSidebarTrigger={false} />
+            {children}
+            <SSEConnectionStatus />
+            <Toaster />
+          </SSEProvider>
         </AuthProvider>
       </UserProvider>
     </ThemeProvider>
