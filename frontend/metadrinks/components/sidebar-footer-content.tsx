@@ -1,7 +1,6 @@
 "use client";
 
 import { useSelectedItems } from "@/components/selected-items-context";
-import { Button } from "@/components/ui/button";
 import CheckoutButton from "./checkout-button";
 
 export function SidebarFooterContent() {

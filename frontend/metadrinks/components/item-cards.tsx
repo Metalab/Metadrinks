@@ -1,10 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardTitle } from "@/components/ui/card";
 import { useSelectedItems } from "@/components/selected-items-context";
-import { config } from "@/lib/config";
 
 type Item = {
   id: string;

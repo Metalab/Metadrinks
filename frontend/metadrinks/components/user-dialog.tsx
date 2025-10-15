@@ -33,7 +33,7 @@ export function UserDialog({
   onUserCreated,
 }: UserDialogProps) {
   const router = useRouter();
-  const { handleLogin, dialogOpen, setDialogOpen, dialogUsername } = useLogin();
+  const { dialogOpen, setDialogOpen, dialogUsername } = useLogin();
 
   const handleSubmit = async () => {
     const nameInput = document.getElementById("name") as HTMLInputElement;
@@ -51,13 +51,7 @@ export function UserDialog({
       });
 
       if (response.ok) {
-        toast("User created successfully", {
-          description: name,
-          action: {
-            label: "Log in",
-            onClick: () => handleLogin(name),
-          },
-        });
+        toast("User created successfully");
         setOpen(false);
         router.refresh();
         onUserCreated?.();
