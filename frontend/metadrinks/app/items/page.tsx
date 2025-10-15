@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import ItemCards from "@/components/item-cards";
-import { SearchInput } from "@/components/search-barcode-input";
+import { BarcodeSearchInput } from "@/components/search-barcode-input";
 import { config } from "@/lib/config";
 
 type Item = {
@@ -37,7 +37,7 @@ export default function ItemsPage() {
 
   return (
     <div>
-      <SearchInput items={items} />
+      <BarcodeSearchInput items={items} />
       <div>
         <div className="p-8 pb-20 flex flex-row flex-wrap justify-center gap-4">
           <ItemCards items={items} />

@@ -16,7 +16,7 @@ interface SearchInputProps {
   items: Item[];
 }
 
-export function SearchInput({ items }: SearchInputProps) {
+export function BarcodeSearchInput({ items }: SearchInputProps) {
   const [value, setValue] = useState<string>("");
   const valueRef = useRef<string>("");
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -76,6 +76,7 @@ export function SearchInput({ items }: SearchInputProps) {
 
   return (
     <div className="fixed top-0 left-0 right-0 h-16 flex items-center justify-center z-10">
+      {/*make this invisible here*/}
       <div className="relative w-72">
         <SearchIcon className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
         <Input
