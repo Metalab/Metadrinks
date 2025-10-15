@@ -8,11 +8,7 @@ import { useUser } from "@/components/user-context";
 interface AuthContextType {
   loggedIn: boolean;
   expiresIn: number | null;
-  login: (
-    username: string,
-    password?: string,
-    isAdmin?: boolean
-  ) => Promise<void>;
+  login: (username: string, password?: string) => Promise<void>;
   logout: () => void;
 }
 
@@ -103,11 +99,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     };
   }, []);
 
-  const login = async (
-    username: string,
-    password?: string,
-    isAdmin?: boolean
-  ) => {
+  const login = async (username: string, password?: string) => {
     try {
       const res = await fetch(`${config.apiBaseUrl}/auth/login`, {
         method: "POST",
@@ -127,12 +119,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         const expTime = new Date(data.expire).getTime().toString();
         localStorage.setItem("session_exp", expTime);
         setLoggedIn(true);
+        // user object is set in use-login.ts after login
         router.push("/items");
       } else {
         throw new Error("No expiry time received from server");
       }
     } catch (error) {
       setLoggedIn(false);
+      setUser(null);
       localStorage.removeItem("session_exp");
       throw error;
     }
