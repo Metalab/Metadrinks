@@ -58,7 +58,7 @@ func StartReaderCheckout(ReaderId string, TotalAmount uint, Description *string)
 	returnUrl := os.Getenv("SUMUP_RETURN_URL")
 	response, checkoutErr := SumupClient.Readers.CreateCheckout(context.Background(), *SumupAccount.MerchantProfile.MerchantCode, ReaderId, readers.CreateReaderCheckoutBody{Description: Description, ReturnUrl: &returnUrl, TotalAmount: readers.CreateReaderCheckoutAmount{Currency: "EUR", MinorUnit: 2, Value: int(TotalAmount)}})
 	if checkoutErr != nil {
-		return "error", fmt.Errorf("error while creating reader checkout: %s", checkoutErr.Error())
+		return "error", fmt.Errorf(checkoutErr.Error())
 	}
 	return *response.Data.ClientTransactionId, nil
 }
