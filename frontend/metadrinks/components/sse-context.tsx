@@ -17,7 +17,12 @@ interface SSEEvent {
 interface SSEContextType {
   isConnected: boolean;
   lastEvent: SSEEvent | null;
-  connectionStatus: "connecting" | "connected" | "disconnected" | "error";
+  connectionStatus:
+    | "connecting"
+    | "connected"
+    | "disconnected"
+    | "error"
+    | "reconnecting";
 }
 
 const SSEContext = createContext<SSEContextType | undefined>(undefined);
@@ -26,13 +31,12 @@ export const SSEProvider = ({ children }: { children: React.ReactNode }) => {
   const [isConnected, setIsConnected] = useState(false);
   const [lastEvent, setLastEvent] = useState<SSEEvent | null>(null);
   const [connectionStatus, setConnectionStatus] = useState<
-    "connecting" | "connected" | "disconnected" | "error"
+    "connecting" | "connected" | "disconnected" | "error" | "reconnecting"
   >("disconnected");
   const eventSourceRef = useRef<EventSource | null>(null);
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const reconnectAttempts = useRef(0);
-  const maxReconnectAttempts = 5;
-  const reconnectDelay = 3000; // 3 seconds
+  const hasEverConnected = useRef(false);
+  const reconnectDelay = 5000; // 5 seconds
 
   const connect = () => {
     // Don't create a new connection if one already exists
@@ -45,8 +49,11 @@ export const SSEProvider = ({ children }: { children: React.ReactNode }) => {
       eventSourceRef.current.close();
     }
 
-    setConnectionStatus("connecting");
-    console.log("Establishing SSE connection to payment events...");
+    // Only set to "connecting" on initial connection, not on reconnects
+    if (!hasEverConnected.current) {
+      setConnectionStatus("connecting");
+      console.log("Establishing SSE connection to payment events...");
+    }
 
     try {
       const eventSource = new EventSource(
@@ -59,7 +66,7 @@ export const SSEProvider = ({ children }: { children: React.ReactNode }) => {
         console.log("SSE connection established");
         setIsConnected(true);
         setConnectionStatus("connected");
-        reconnectAttempts.current = 0; // Reset reconnect attempts on successful connection
+        hasEverConnected.current = true; // Mark that we've successfully connected at least once
       };
 
       eventSource.onmessage = (event) => {
@@ -82,22 +89,17 @@ export const SSEProvider = ({ children }: { children: React.ReactNode }) => {
       eventSource.onerror = (error) => {
         console.error("SSE connection error:", error);
         setIsConnected(false);
-        setConnectionStatus("error");
 
-        // Only attempt reconnection if we haven't exceeded max attempts
-        if (reconnectAttempts.current < maxReconnectAttempts) {
-          reconnectAttempts.current++;
-          console.log(
-            `SSE reconnection attempt ${reconnectAttempts.current}/${maxReconnectAttempts} in ${reconnectDelay}ms`
-          );
+        // Use "error" status only if we've never successfully connected (initial connection failure)
+        // Use "reconnecting" status if we've connected before
+        const status = hasEverConnected.current ? "reconnecting" : "error";
+        setConnectionStatus(status);
 
-          reconnectTimeoutRef.current = setTimeout(() => {
-            connect();
-          }, reconnectDelay);
-        } else {
-          console.log("Max SSE reconnection attempts reached");
-          setConnectionStatus("disconnected");
-        }
+        console.log(`SSE reconnection attempt in ${reconnectDelay}ms`);
+
+        reconnectTimeoutRef.current = setTimeout(() => {
+          connect();
+        }, reconnectDelay);
       };
 
       // Listen for specific event types if the server sends them
@@ -149,7 +151,6 @@ export const SSEProvider = ({ children }: { children: React.ReactNode }) => {
 
     setIsConnected(false);
     setConnectionStatus("disconnected");
-    reconnectAttempts.current = 0;
   };
 
   // Establish connection when component mounts and clean up on unmount
