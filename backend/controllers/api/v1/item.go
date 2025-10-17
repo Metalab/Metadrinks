@@ -7,13 +7,14 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"github.com/lib/pq"
 )
 
 type CreateItemInput struct {
-	Name    string `json:"name" binding:"required"`
-	Image   string `json:"image"`
-	Price   uint   `json:"price" binding:"required"`
-	Barcode string `json:"barcode"`
+	Name     string         `json:"name" binding:"required"`
+	Image    string         `json:"image"`
+	Price    uint           `json:"price" binding:"required"`
+	Barcodes pq.StringArray `json:"barcodes"`
 }
 
 //	@BasePath	/api/v1
@@ -41,7 +42,7 @@ func CreateItem(c *gin.Context) {
 		return
 	}
 
-	item := models.Item{Name: input.Name, Image: input.Image, Price: input.Price, Barcode: input.Barcode}
+	item := models.Item{Name: input.Name, Image: input.Image, Price: input.Price, Barcodes: input.Barcodes}
 	if err := models.DB.Create(&item).Error; err != nil {
 		c.AbortWithStatus(http.StatusBadRequest /*, gin.H{"error": err.Error()}*/)
 		return
@@ -105,10 +106,10 @@ func FindItemById(id uuid.UUID) models.Item {
 }
 
 type UpdateItemInput struct {
-	Name    string `json:"name,omitempty"`
-	Image   string `json:"image,omitempty"`
-	Price   uint   `json:"price,omitempty"`
-	Barcode string `json:"barcode,omitempty"`
+	Name     string         `json:"name,omitempty"`
+	Image    string         `json:"image,omitempty"`
+	Price    uint           `json:"price,omitempty"`
+	Barcodes pq.StringArray `json:"barcodes,omitempty"`
 }
 
 // UpdateItem godoc
@@ -142,7 +143,7 @@ func UpdateItem(c *gin.Context) {
 		return
 	}
 
-	updatedItem := models.Item{Name: input.Name, Image: input.Image, Price: input.Price, Barcode: input.Barcode}
+	updatedItem := models.Item{Name: input.Name, Image: input.Image, Price: input.Price, Barcodes: input.Barcodes}
 
 	models.DB.Model(&item).Updates(&updatedItem)
 	c.JSON(http.StatusOK, gin.H{"data": item})
