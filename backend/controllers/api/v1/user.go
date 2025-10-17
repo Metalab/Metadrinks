@@ -38,6 +38,11 @@ func CreateUser(c *gin.Context) {
 		return
 	}
 
+	if len(input.Name) > 24 {
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "name must not be longer than 24 characters"})
+		return
+	}
+
 	userId := uuid.New()
 
 	hashedPassword, err := crypto.HashPasswordSecure(input.Password) //bcrypt.GenerateFromPassword([]byte(input.Password), bcrypt.DefaultCost)
@@ -65,7 +70,7 @@ func CreateUser(c *gin.Context) {
 //	@Router			/users [get]
 func FindUsers(c *gin.Context) {
 	var users []models.User
-	models.DB.Order("used_at DESC").Find(&users)
+	models.DB.Where("is_admin = false").Order("used_at DESC").Find(&users)
 
 	for i := range users { // do not return the user password
 		users[i].Password = ""
@@ -109,6 +114,11 @@ type UpdateUserInput struct {
 	var user models.Item
 	if err := models.DB.Where("user_id = ?", c.Param("id")).First(&user).Error; err != nil {
 		c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"error": "record not found"})
+		return
+	}
+
+	if len(input.Name) > 24 {
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "name must not be longer than 24 characters"})
 		return
 	}
 

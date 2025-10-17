@@ -9,7 +9,7 @@ import (
 
 type User struct {
 	UserID       uuid.UUID      `json:"id" gorm:"primaryKey;unique;type:uuid;default:gen_random_uuid()"`
-	Name         string         `json:"name" gorm:"index,unique"`
+	Name         string         `json:"name" gorm:"index,unique,size:24"`
 	Image        string         `json:"image" default:"assets/empty.webp"`
 	Password     string         `json:"password,omitempty"`
 	Balance      int            `json:"balance" gorm:"default:0"`
