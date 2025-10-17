@@ -67,7 +67,6 @@ func (Stream *Event) listen() {
 				continue
 			}
 
-			log.Printf("Sending heartbeat to %d clients", len(Stream.TotalClients))
 			var disconnectedClients []chan string
 
 			for clientMessageChan := range Stream.TotalClients {
