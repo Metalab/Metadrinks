@@ -11,7 +11,8 @@ import (
 	"metalab/metadrinks/models"
 	sumupmodels "metalab/metadrinks/models/sumup"
 
-	jwt "github.com/appleboy/gin-jwt/v2"
+	jwt "metalab/metadrinks/libs/auth"
+
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 )
@@ -63,17 +64,17 @@ func CreatePurchase(c *gin.Context) {
 	userTrust := userClaims["trusted"].(bool)
 
 	if err := c.ShouldBindJSON(&input); err != nil {
-		c.AbortWithError(http.StatusBadRequest, err)
+		c.AbortWithStatus(http.StatusBadRequest)
 		return
 	}
 
 	if input.Amount != 0 && len(input.Items) != 0 {
-		c.AbortWithError(http.StatusBadRequest, fmt.Errorf("only one of 'items' and 'amount' can be specified"))
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"message": "only one of 'items' and 'amount' can be specified"})
 		return
 	}
 
 	if input.Amount != 0 && userClaims["restricted"].(bool) {
-		c.AbortWithError(http.StatusForbidden, fmt.Errorf("user is restricted"))
+		c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"message": "User is restricted"})
 		return
 	}
 
@@ -96,7 +97,7 @@ func CreatePurchase(c *gin.Context) {
 		clientTransactionId, err = libs.StartReaderCheckout(input.ReaderId, finalCost, &finalTransactionDescription)
 		if err != nil {
 			fmt.Printf("error while creating reader checkout: %s\n", err.Error())
-			c.AbortWithError(http.StatusInternalServerError, err)
+			c.AbortWithStatus(http.StatusInternalServerError)
 			return
 		}
 	case models.PaymentTypeCash:
@@ -104,21 +105,21 @@ func CreatePurchase(c *gin.Context) {
 	case models.PaymentTypeBalance:
 		if balance, err := GetUserBalance(userId); err == nil {
 			if finalCost >= math.MaxInt32 {
-				c.AbortWithError(http.StatusBadRequest, fmt.Errorf("final cost exceeds maximum allowed value"))
+				c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"message": "Final cost exceeds maximum allowed value"})
 				return
 			}
 			if (*balance-int(finalCost) < 0) && !userTrust {
-				c.AbortWithError(http.StatusForbidden, fmt.Errorf("not enough balance"))
+				c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"message": "Not enough balance"})
 				return
 			} else {
 				transactionStatus = sumupmodels.TransactionFullStatusSuccessful
 				UpdateUserBalance(userId, -int(finalCost))
 			}
 		} else if err.Error() == "user is restricted" {
-			c.AbortWithError(http.StatusForbidden, err)
+			c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"message": "User is restricted"})
 			return
 		} else {
-			c.AbortWithError(http.StatusInternalServerError, err)
+			c.AbortWithStatus(http.StatusInternalServerError)
 			return
 		}
 	}
@@ -150,6 +151,7 @@ func FindPurchases(c *gin.Context) {
 	var purchases []models.Purchase
 	userClaims := jwt.ExtractClaims(c)
 	userId := uuid.MustParse(userClaims["userId"].(string))
+	isAdmin := userClaims["admin"].(bool)
 
 	limit := c.DefaultQuery("limit", "-1")
 	limitInt, err := strconv.Atoi(limit)
@@ -157,8 +159,11 @@ func FindPurchases(c *gin.Context) {
 		c.AbortWithError(http.StatusBadRequest, err)
 		return
 	}
-
-	models.DB.Where("created_by = ?", userId).Find(&purchases).Limit(limitInt)
+	if !isAdmin {
+		models.DB.Where("created_by = ?", userId).Find(&purchases).Limit(limitInt)
+	} else {
+		models.DB.Find(&purchases).Limit(limitInt)
+	}
 
 	c.Header("Content-Type", "application/json")
 	c.JSON(http.StatusOK, gin.H{"data": purchases})
@@ -185,10 +190,18 @@ func FindPurchase(c *gin.Context) {
 	var purchase models.Purchase
 	userClaims := jwt.ExtractClaims(c)
 	userId := uuid.MustParse(userClaims["userId"].(string))
+	isAdmin := userClaims["admin"].(bool)
 
-	if err := models.DB.Where("created_by = ?", userId).Where("purchase_id = ?", c.Param("id")).First(&purchase).Error; err != nil {
-		c.AbortWithStatus(http.StatusNotFound)
-		return
+	if !isAdmin {
+		if err := models.DB.Where("created_by = ?", userId).Where("purchase_id = ?", c.Param("id")).First(&purchase).Error; err != nil {
+			c.AbortWithStatus(http.StatusNotFound)
+			return
+		}
+	} else {
+		if err := models.DB.Where("purchase_id = ?", c.Param("id")).First(&purchase).Error; err != nil {
+			c.AbortWithStatus(http.StatusNotFound)
+			return
+		}
 	}
 
 	c.Header("Content-Type", "application/json")

@@ -2,15 +2,16 @@ package main
 
 import (
 	"log"
+	"metalab/metadrinks/controllers/auth"
 	"os"
 	"strings"
 
-	jwt "github.com/appleboy/gin-jwt/v2"
+	authLib "metalab/metadrinks/libs/auth"
+
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
 
 	"metalab/metadrinks/controllers/api"
-	"metalab/metadrinks/controllers/auth"
 	"metalab/metadrinks/controllers/payment"
 	"metalab/metadrinks/libs"
 	"metalab/metadrinks/models"
@@ -77,7 +78,7 @@ func main() {
 	libs.Login(os.Getenv("SUMUP_API_KEY"))
 	libs.InitAPIReaders()
 
-	authMiddleware, err := jwt.New(auth.InitParams())
+	authMiddleware, err := authLib.New(auth.InitParams())
 	if err != nil {
 		log.Fatal("JWT Error:" + err.Error())
 	}

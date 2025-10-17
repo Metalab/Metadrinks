@@ -2,24 +2,24 @@ package auth
 
 import (
 	"log"
+	"metalab/metadrinks/libs/auth"
 	"metalab/metadrinks/libs/crypto"
 	"metalab/metadrinks/models"
 	"net/http"
 	"os"
 	"time"
 
-	jwt "github.com/appleboy/gin-jwt/v2"
 	"github.com/gin-gonic/gin"
 )
 
-var JWTAuthMiddleware *jwt.GinJWTMiddleware
+var JWTAuthMiddleware *auth.GinJWTMiddleware
 
 type LoginForm struct {
 	Username string `form:"username" json:"username" binding:"required"`
 	Password string `form:"password" json:"password"`
 }
 
-func HandlerMiddleware(authMiddleware *jwt.GinJWTMiddleware) gin.HandlerFunc {
+func HandlerMiddleware(authMiddleware *auth.GinJWTMiddleware) gin.HandlerFunc {
 	return func(context *gin.Context) {
 		errInit := authMiddleware.MiddlewareInit()
 		if errInit != nil {
@@ -28,8 +28,8 @@ func HandlerMiddleware(authMiddleware *jwt.GinJWTMiddleware) gin.HandlerFunc {
 	}
 }
 
-func InitParams() *jwt.GinJWTMiddleware {
-	return &jwt.GinJWTMiddleware{
+func InitParams() *auth.GinJWTMiddleware {
+	return &auth.GinJWTMiddleware{
 		Realm:            "drinks-pos",
 		Key:              []byte(os.Getenv("JWT_SECRET")),
 		SigningAlgorithm: "HS512",
@@ -41,6 +41,7 @@ func InitParams() *jwt.GinJWTMiddleware {
 		IdentityHandler: identityHandler(),
 		Authenticator:   authenticator(),
 		Unauthorized:    unauthorized(),
+		LoginResponse:   loginResponse(),
 		SendCookie:      true,
 		CookieName:      "drinks_pos_session",
 		CookieSameSite:  http.SameSiteStrictMode,
@@ -50,10 +51,10 @@ func InitParams() *jwt.GinJWTMiddleware {
 	}
 }
 
-func payloadFunc() func(data any) jwt.MapClaims {
-	return func(data any) jwt.MapClaims {
+func payloadFunc() func(data any) auth.MapClaims {
+	return func(data any) auth.MapClaims {
 		if v, ok := data.(*models.User); ok {
-			return jwt.MapClaims{
+			return auth.MapClaims{
 				"userId":     v.UserID.String(),
 				"sub":        v.Name,
 				"restricted": v.IsRestricted,
@@ -61,13 +62,13 @@ func payloadFunc() func(data any) jwt.MapClaims {
 				"admin":      v.IsAdmin,
 			}
 		}
-		return jwt.MapClaims{}
+		return auth.MapClaims{}
 	}
 }
 
 func identityHandler() func(c *gin.Context) any {
 	return func(c *gin.Context) any {
-		claims := jwt.ExtractClaims(c)
+		claims := auth.ExtractClaims(c)
 		return &models.User{
 			Name: claims["sub"].(string),
 		}
@@ -78,7 +79,7 @@ func authenticator() func(c *gin.Context) (any, error) {
 	return func(c *gin.Context) (any, error) {
 		var loginVals LoginForm
 		if err := c.ShouldBind(&loginVals); err != nil {
-			return "", jwt.ErrMissingLoginValues
+			return "", auth.ErrMissingLoginValues
 		}
 		username := loginVals.Username
 		password := loginVals.Password
@@ -86,7 +87,7 @@ func authenticator() func(c *gin.Context) (any, error) {
 		user, err := TryAuthenticate(username, password)
 		if err != nil {
 			log.Printf("Failed authentication for user %s: %v\n", username, err)
-			return nil, jwt.ErrFailedAuthentication
+			return nil, auth.ErrFailedAuthentication
 		}
 		return user, nil
 	}
@@ -97,6 +98,39 @@ func unauthorized() func(c *gin.Context, code int, message string) {
 		c.JSON(code, gin.H{
 			"code":    code,
 			"message": message,
+		})
+	}
+}
+
+func loginResponse() func(c *gin.Context, code int, token string, expire time.Time) {
+	return func(c *gin.Context, code int, token string, expire time.Time) {
+		// Extract user data from context
+		userData, exists := c.Get("user")
+		if !exists {
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"code":    http.StatusInternalServerError,
+				"message": "Failed to get user data",
+			})
+			return
+		}
+
+		user, ok := userData.(*models.User)
+		if !ok {
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"code":    http.StatusInternalServerError,
+				"message": "Invalid user data",
+			})
+			return
+		}
+
+		// Clear sensitive fields before returning
+		user.Password = ""
+
+		c.JSON(http.StatusOK, gin.H{
+			"code":   http.StatusOK,
+			"token":  token,
+			"expire": expire.UTC().Format(http.TimeFormat),
+			"user":   user,
 		})
 	}
 }
@@ -119,7 +153,7 @@ func TryAuthenticate(username, password string) (*models.User, error) {
 
 func IsUserAdmin() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		if !jwt.ExtractClaims(c)["admin"].(bool) {
+		if !auth.ExtractClaims(c)["admin"].(bool) {
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
 			return
 		}
