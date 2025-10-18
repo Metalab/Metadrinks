@@ -10,12 +10,12 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { LockIcon, UserIcon } from "lucide-react";
 import { useAuth } from "./auth-context";
+import { User } from "./user-context";
 
 export default function PasswordDialog({
   open,
@@ -23,14 +23,20 @@ export default function PasswordDialog({
   username,
   description,
   disableClose = false,
+  redirect = true,
   onSuccess,
+  onValidate,
 }: {
   open: boolean;
   setOpen: (open: boolean) => void;
   username: string;
   description?: string;
   disableClose?: boolean;
+  redirect?: boolean;
   onSuccess?: () => void;
+  onValidate?: (
+    user: User | null
+  ) => Promise<{ isValid: boolean; error?: string }>;
 }) {
   const [localUsername, setLocalUsername] = React.useState("");
   const [password, setPassword] = React.useState("");
@@ -52,7 +58,16 @@ export default function PasswordDialog({
     setLoading(true);
     setError("");
     try {
-      await login(localUsername, password);
+      const userData = await login(localUsername, password, redirect);
+
+      if (onValidate) {
+        const validation = await onValidate(userData);
+        if (!validation.isValid) {
+          setError(validation.error || "Validation failed");
+          return;
+        }
+      }
+
       onSuccess?.();
       setOpen(false);
       setPassword("");

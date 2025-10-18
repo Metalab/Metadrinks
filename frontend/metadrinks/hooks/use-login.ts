@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { useAuth } from "@/components/auth-context";
-import { useUser } from "@/components/user-context";
 
 export function useLogin() {
   const [loading, setLoading] = useState<{ [id: string]: boolean }>({});
@@ -10,7 +9,6 @@ export function useLogin() {
   const [dialogUsername, setDialogUsername] = useState("");
 
   const { login } = useAuth();
-  const { setUser, fetchUser } = useUser();
   
   const handleLogin = async (username: string, userId: string) => {
     if (userId) {
@@ -28,7 +26,6 @@ export function useLogin() {
       }
     } finally {
       if (userId) {
-        setUser(await fetchUser(userId));
         setLoading((prev) => ({ ...prev, [userId]: false }));
       }
     }

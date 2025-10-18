@@ -10,7 +10,7 @@ type Item = {
   name: string;
   image?: string;
   price: number;
-  barcode?: string;
+  barcodes?: string[];
 };
 
 export default function ItemsPage() {
@@ -21,7 +21,7 @@ export default function ItemsPage() {
     fetch(`${config.apiBaseUrl}/api/v1/items`)
       .then((res) => res.json())
       .then((data) => {
-        let items: Item[] = Array.isArray(data) ? data : data.data || [];
+        const items: Item[] = Array.isArray(data) ? data : data.data || [];
         setItems(items);
         setLoading(false);
       })
@@ -38,11 +38,7 @@ export default function ItemsPage() {
   return (
     <div>
       <BarcodeSearchInput items={items} />
-      <div>
-        <div className="p-8 pb-20 flex flex-row flex-wrap justify-center gap-4">
-          <ItemCards items={items} />
-        </div>
-      </div>
+      <ItemCards items={items} />
     </div>
   );
 }

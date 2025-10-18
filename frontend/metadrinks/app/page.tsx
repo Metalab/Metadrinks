@@ -6,16 +6,17 @@ import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import UserCards from "@/components/user-cards";
 import { useAuth } from "@/components/auth-context";
-import { Spinner } from "@/components/ui/shadcn-io/spinner";
 import { PlusIcon, SearchIcon } from "lucide-react";
 import { UserDialog } from "@/components/user-dialog";
+import { BarcodeSearchInput } from "@/components/search-barcode-input";
+import { Spinner } from "@/components/ui/spinner";
 
 export default function Home() {
   const [search, setSearch] = useState("");
   const [guestLoading, setGuestLoading] = useState(false);
   const [userDialogOpen, setUserDialogOpen] = useState(false);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
-  const { loggedIn, login } = useAuth();
+  const { login } = useAuth();
 
   const handleUserCreated = () => {
     setRefreshTrigger((prev) => prev + 1);
@@ -28,7 +29,8 @@ export default function Home() {
   };
 
   return (
-    <div className="font-sans items-center justify-items-center p-8 pb-20 gap-16">
+    <div className="font-sans items-center justify-items-center gap-16">
+      <BarcodeSearchInput visible={false} />
       <main className="flex flex-col items-center gap-8">
         <Button
           variant="outline"

@@ -7,7 +7,7 @@ type Item = {
   name: string;
   image?: string;
   price: number;
-  barcode?: string;
+  barcodes?: string[];
 };
 
 type SelectedItemWithQuantity = Item & {

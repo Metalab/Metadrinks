@@ -11,6 +11,7 @@ export type User = {
   is_active: boolean;
   is_trusted: boolean;
   is_restricted: boolean;
+  is_admin: boolean;
 };
 
 type UserContextType = {

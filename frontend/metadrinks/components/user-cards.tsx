@@ -3,10 +3,10 @@
 import { useState, useEffect } from "react";
 import { Button } from "./ui/button";
 import { Card, CardHeader, CardTitle, CardDescription } from "./ui/card";
-import { Spinner } from "./ui/shadcn-io/spinner";
 import PasswordDialog from "./password-dialog";
 import { config } from "@/lib/config";
 import { useLogin } from "@/hooks/use-login";
+import { Spinner } from "./ui/spinner";
 
 type User = {
   id: string; //uuid
@@ -49,7 +49,7 @@ export default function UserCards({ search = "" }: { search?: string }) {
       {filteredUsers.length === 0 ? (
         <div className="text-gray-500">No results found.</div>
       ) : (
-        <div className="flex flex-wrap gap-x-6 gap-y-4 justify-center">
+        <div className="flex flex-wrap gap-x-4 gap-y-4 justify-center">
           {filteredUsers.map((user) => {
             const isLoading = loading[user.id];
             return (
@@ -66,14 +66,16 @@ export default function UserCards({ search = "" }: { search?: string }) {
                 }}
               >
                 <Card
-                  className={`w-48 justify-between relative ${
+                  className={`w-48 justify-between relative py-4 ${
                     !user.is_active || isLoading
                       ? "opacity-50 pointer-events-none"
                       : ""
                   }`}
                 >
-                  <CardHeader>
-                    <CardTitle>{user.name}</CardTitle>
+                  <CardHeader className="px-2">
+                    <CardTitle className="break-words whitespace-normal hyphens-auto leading-normal wrap-anywhere">
+                      {user.name}
+                    </CardTitle>
                     <CardDescription>
                       {(user.balance / 100).toFixed(2)}€
                     </CardDescription>

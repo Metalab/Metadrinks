@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -16,6 +16,7 @@ import { useSelectedItems } from "@/components/selected-items-context";
 import { Spinner } from "./ui/spinner";
 import { useUser } from "./user-context";
 import { useSSE } from "./sse-context";
+import { useAuth } from "./auth-context";
 import { config } from "@/lib/config";
 
 type KnownMethod = "cash" | "card" | "balance";
@@ -23,31 +24,158 @@ type KnownMethod = "cash" | "card" | "balance";
 interface PaymentDialogProps {
   method?: string; // cash/card/balance
   trigger?: React.ReactNode;
-  amount?: number;
-  onComplete?: (result: { method: string; data?: any }) => void;
+  onComplete?: (result: { method: string; data?: unknown }) => void;
 }
 
-function CashForm({
-  amount,
-  onComplete,
+interface PaymentFormProps {
+  onComplete?: (d: unknown) => void;
+}
+
+function usePaymentCompletion(
+  initialCompleted = false,
+  onComplete?: () => void
+) {
+  const [isCompleted, setIsCompleted] = useState(initialCompleted);
+  const [countdown, setCountdown] = useState(5);
+  const onCompleteRef = useRef(onComplete);
+
+  useEffect(() => {
+    onCompleteRef.current = onComplete;
+  }, [onComplete]);
+
+  useEffect(() => {
+    if (isCompleted && countdown > 0) {
+      const timer = setTimeout(() => {
+        setCountdown(countdown - 1);
+      }, 1000);
+      return () => clearTimeout(timer);
+    } else if (isCompleted && countdown === 0) {
+      onCompleteRef.current?.();
+      const closeButton = document.querySelector(
+        "[data-dialog-close]"
+      ) as HTMLButtonElement;
+      if (closeButton) {
+        closeButton.click();
+      }
+    }
+  }, [isCompleted, countdown]);
+
+  return { isCompleted, setIsCompleted, countdown };
+}
+
+function PaymentCompletedState({
+  method,
+  countdown,
+  onClose,
 }: {
-  amount?: number;
-  onComplete?: (d: any) => void;
+  method: string;
+  countdown: number;
+  onClose?: () => void;
 }) {
-  const [val, setVal] = useState<string>((amount ?? 0).toString());
+  const { logout } = useAuth();
+
+  const handleClose = () => {
+    onClose?.();
+    logout();
+  };
+
+  return (
+    <div>
+      <DialogHeader>
+        <DialogTitle>Payment completed</DialogTitle>
+        <DialogDescription>
+          Your {method} payment has been processed successfully.
+        </DialogDescription>
+      </DialogHeader>
+      <div className="flex flex-col items-center justify-center gap-4 py-6">
+        <div className="text-lg font-semibold text-green-600">
+          ✅ Payment Completed
+        </div>
+      </div>
+      <DialogFooter className="pt-4">
+        <DialogClose asChild>
+          <Button className="w-full" data-dialog-close onClick={handleClose}>
+            Done ({countdown}s)
+          </Button>
+        </DialogClose>
+      </DialogFooter>
+    </div>
+  );
+}
+
+function createPurchasePayload(
+  selectedItems: { id: string; quantity: number }[],
+  paymentType: string,
+  additionalData?: Record<string, unknown>
+) {
+  return {
+    items: selectedItems.map((item) => ({
+      id: item.id,
+      amount: item.quantity,
+    })),
+    payment_type: paymentType,
+    ...additionalData,
+  };
+}
+
+function CashForm({ onComplete }: PaymentFormProps) {
   const { selectedItems } = useSelectedItems();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [paymentResult, setPaymentResult] = useState<unknown>(null);
+
+  const { isCompleted, setIsCompleted, countdown } = usePaymentCompletion(
+    false,
+    () => {
+      if (paymentResult) {
+        onComplete?.(paymentResult);
+      }
+    }
+  );
+
   const totalInCents = selectedItems.reduce(
     (sum, item) => sum + item.price * item.quantity,
     0
   );
   const totalInEuros = (totalInCents / 100).toFixed(2);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+
+    try {
+      const payload = createPurchasePayload(selectedItems, "cash");
+      const response = await fetch(`${config.apiBaseUrl}/api/v1/purchases`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+        credentials: "include",
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to create purchase: ${response.statusText}`);
+      }
+
+      const result = await response.json();
+      console.log("Cash purchase created successfully:", result);
+      setPaymentResult({ method: "cash", data: result });
+      setIsCompleted(true);
+    } catch (error) {
+      console.error("Error creating cash purchase:", error);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  if (isCompleted) {
+    console.log(
+      "Rendering PaymentCompletedState for cash with countdown:",
+      countdown
+    );
+    return <PaymentCompletedState method="cash" countdown={countdown} />;
+  }
+
   return (
-    <form
-      onSubmit={(e) => {
-        e.preventDefault();
-        onComplete?.({ amount: parseFloat(val || "0") });
-      }}
-    >
+    <form onSubmit={handleSubmit}>
       <DialogHeader>
         <DialogTitle>Cash payment</DialogTitle>
         <DialogDescription>
@@ -56,15 +184,19 @@ function CashForm({
       </DialogHeader>
       <DialogFooter className="pt-4">
         <DialogClose asChild>
-          <Button variant="outline">Cancel</Button>
+          <Button variant="outline" disabled={isSubmitting}>
+            Cancel
+          </Button>
         </DialogClose>
-        <Button type="submit">Done</Button>
+        <Button type="submit" disabled={isSubmitting}>
+          {isSubmitting ? "Processing..." : "Done"}
+        </Button>
       </DialogFooter>
     </form>
   );
 }
 
-function CardForm({ onComplete }: { onComplete?: (d: any) => void }) {
+function CardForm({ onComplete }: PaymentFormProps) {
   const { selectedItems } = useSelectedItems();
   const { isConnected, lastEvent } = useSSE();
   const [isProcessing, setIsProcessing] = useState(false);
@@ -73,17 +205,31 @@ function CardForm({ onComplete }: { onComplete?: (d: any) => void }) {
   );
   const [status, setStatus] = useState<string>("idle");
   const [error, setError] = useState<string | null>(null);
+  const [paymentResult, setPaymentResult] = useState<unknown>(null);
 
-  // Listen for SSE transaction updates
+  const { isCompleted, setIsCompleted, countdown } = usePaymentCompletion(
+    false,
+    () => {
+      if (paymentResult) {
+        onComplete?.(paymentResult);
+      }
+    }
+  );
+
   useEffect(() => {
     if (lastEvent?.type === "transaction_update" && clientTransactionId) {
-      const { client_transaction_id, transaction_status } = lastEvent.data;
+      const data = lastEvent.data as {
+        client_transaction_id: string;
+        transaction_status: string;
+      };
+      const { client_transaction_id, transaction_status } = data;
 
       if (client_transaction_id === clientTransactionId) {
         setStatus(transaction_status);
 
         if (transaction_status === "successful") {
-          onComplete?.({ status: "successful", client_transaction_id });
+          setPaymentResult({ status: "successful", client_transaction_id });
+          setIsCompleted(true);
         } else if (
           transaction_status === "failed" ||
           transaction_status === "cancelled"
@@ -93,7 +239,7 @@ function CardForm({ onComplete }: { onComplete?: (d: any) => void }) {
         }
       }
     }
-  }, [lastEvent, clientTransactionId, onComplete]);
+  }, [lastEvent, clientTransactionId, setIsCompleted]);
 
   const startPayment = async () => {
     if (!isConnected) {
@@ -106,22 +252,13 @@ function CardForm({ onComplete }: { onComplete?: (d: any) => void }) {
     setStatus("starting");
 
     try {
-      // Prepare purchase data
-      const purchaseData = {
-        items: selectedItems.map((item) => ({
-          id: item.id,
-          amount: item.quantity,
-        })),
-        payment_type: "card",
+      const purchaseData = createPurchasePayload(selectedItems, "card", {
         reader_id: "rdr_2G7JVXPAV5906VAC4W9ZBDJ8F6",
-      };
+      });
 
-      // Send POST request to create purchase
       const response = await fetch(`${config.apiBaseUrl}/api/v1/purchases`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         credentials: "include",
         body: JSON.stringify(purchaseData),
       });
@@ -150,9 +287,7 @@ function CardForm({ onComplete }: { onComplete?: (d: any) => void }) {
     try {
       await fetch(`${config.apiBaseUrl}/payment/v1/readers/terminate`, {
         method: "DELETE",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         credentials: "include",
         body: JSON.stringify({ name: "drinks" }),
       });
@@ -162,21 +297,25 @@ function CardForm({ onComplete }: { onComplete?: (d: any) => void }) {
   };
 
   const getStatusMessage = () => {
-    switch (status) {
-      case "starting":
-        return "Initializing payment...";
-      case "pending":
-        return "Please complete payment on the card reader";
-      case "successful":
-        return "Payment successful!";
-      case "failed":
-        return "Payment failed";
-      case "cancelled":
-        return "Payment cancelled";
-      default:
-        return "Ready to start payment";
-    }
+    const messages = {
+      starting: "Initializing payment...",
+      pending: "Please complete payment on the card reader",
+      successful: "Payment successful!",
+      failed: "Payment failed",
+      cancelled: "Payment cancelled",
+    };
+    return (
+      messages[status as keyof typeof messages] || "Ready to start payment"
+    );
   };
+
+  if (isCompleted) {
+    console.log(
+      "Rendering PaymentCompletedState for card with countdown:",
+      countdown
+    );
+    return <PaymentCompletedState method="card" countdown={countdown} />;
+  }
 
   return (
     <form
@@ -218,7 +357,6 @@ function CardForm({ onComplete }: { onComplete?: (d: any) => void }) {
         <DialogClose asChild>
           <Button
             variant="outline"
-            //disabled={isProcessing}
             onClick={() => {
               if (isProcessing || status === "pending") {
                 terminatePayment();
@@ -251,16 +389,76 @@ function CardForm({ onComplete }: { onComplete?: (d: any) => void }) {
   );
 }
 
-function BalanceForm({ onComplete }: { onComplete?: (d: any) => void }) {
-  const { totalInEuros } = useSelectedItems();
+function BalanceForm({ onComplete }: PaymentFormProps) {
+  const { selectedItems, totalInEuros } = useSelectedItems();
   const { user } = useUser();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [paymentResult, setPaymentResult] = useState<unknown>(null);
+
+  const { isCompleted, setIsCompleted, countdown } = usePaymentCompletion(
+    false,
+    () => {
+      if (paymentResult) {
+        onComplete?.(paymentResult);
+      }
+    }
+  );
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    setError(null);
+
+    try {
+      const payload = createPurchasePayload(selectedItems, "balance");
+      const response = await fetch(`${config.apiBaseUrl}/api/v1/purchases`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+        credentials: "include",
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        let errorMessage = `Payment failed: ${response.statusText}`;
+
+        try {
+          const errorData = JSON.parse(errorText);
+          if (errorData.message) {
+            errorMessage = errorData.message;
+          } else if (errorData.error) {
+            errorMessage = errorData.error;
+          }
+        } catch {
+          // If parsing fails, use the status text
+        }
+
+        throw new Error(errorMessage);
+      }
+
+      const result = await response.json();
+      console.log("Balance purchase created successfully:", result);
+      setPaymentResult({ method: "balance", data: result });
+      setIsCompleted(true);
+    } catch (error) {
+      console.error("Error creating balance purchase:", error);
+      setError(error instanceof Error ? error.message : "Payment failed");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  if (isCompleted) {
+    console.log(
+      "Rendering PaymentCompletedState for balance with countdown:",
+      countdown
+    );
+    return <PaymentCompletedState method="balance" countdown={countdown} />;
+  }
+
   return (
-    <form
-      onSubmit={(e) => {
-        e.preventDefault();
-        //onComplete?.({ username, amount: parseFloat(amt || "0") });
-      }}
-    >
+    <form onSubmit={handleSubmit}>
       <DialogHeader>
         <DialogTitle>Balance payment</DialogTitle>
         <DialogDescription>
@@ -271,11 +469,27 @@ function BalanceForm({ onComplete }: { onComplete?: (d: any) => void }) {
           balance.
         </DialogDescription>
       </DialogHeader>
+
+      {error && (
+        <div className="flex flex-col items-center justify-center gap-4 py-2">
+          <div className="text-sm text-red-500 text-center">{error}</div>
+        </div>
+      )}
+
       <DialogFooter className="pt-4">
         <DialogClose asChild>
-          <Button variant="outline">Cancel</Button>
+          <Button variant="outline" disabled={isSubmitting}>
+            Cancel
+          </Button>
         </DialogClose>
-        <Button type="submit">Pay</Button>
+
+        {error ? (
+          <Button onClick={() => setError(null)}>Try Again</Button>
+        ) : (
+          <Button type="submit" disabled={isSubmitting}>
+            {isSubmitting ? "Processing..." : "Pay"}
+          </Button>
+        )}
       </DialogFooter>
     </form>
   );
@@ -284,7 +498,6 @@ function BalanceForm({ onComplete }: { onComplete?: (d: any) => void }) {
 export function PaymentDialog({
   method,
   trigger,
-  amount,
   onComplete,
 }: PaymentDialogProps) {
   const [selected, setSelected] = useState<KnownMethod | undefined>(

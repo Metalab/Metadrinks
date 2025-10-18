@@ -11,7 +11,7 @@ import { config } from "@/lib/config";
 
 interface SSEEvent {
   type: string;
-  data: any;
+  data: unknown;
 }
 
 interface SSEContextType {
@@ -39,17 +39,14 @@ export const SSEProvider = ({ children }: { children: React.ReactNode }) => {
   const reconnectDelay = 5000; // 5 seconds
 
   const connect = () => {
-    // Don't create a new connection if one already exists
     if (eventSourceRef.current?.readyState === EventSource.OPEN) {
       return;
     }
 
-    // Clean up existing connection
     if (eventSourceRef.current) {
       eventSourceRef.current.close();
     }
 
-    // Only set to "connecting" on initial connection, not on reconnects
     if (!hasEverConnected.current) {
       setConnectionStatus("connecting");
       console.log("Establishing SSE connection to payment events...");
@@ -66,7 +63,7 @@ export const SSEProvider = ({ children }: { children: React.ReactNode }) => {
         console.log("SSE connection established");
         setIsConnected(true);
         setConnectionStatus("connected");
-        hasEverConnected.current = true; // Mark that we've successfully connected at least once
+        hasEverConnected.current = true;
       };
 
       eventSource.onmessage = (event) => {
@@ -90,8 +87,6 @@ export const SSEProvider = ({ children }: { children: React.ReactNode }) => {
         console.error("SSE connection error:", error);
         setIsConnected(false);
 
-        // Use "error" status only if we've never successfully connected (initial connection failure)
-        // Use "reconnecting" status if we've connected before
         const status = hasEverConnected.current ? "reconnecting" : "error";
         setConnectionStatus(status);
 
@@ -102,7 +97,6 @@ export const SSEProvider = ({ children }: { children: React.ReactNode }) => {
         }, reconnectDelay);
       };
 
-      // Listen for specific event types if the server sends them
       eventSource.addEventListener("transaction_update", (event) => {
         try {
           const data = JSON.parse(event.data);
@@ -137,13 +131,11 @@ export const SSEProvider = ({ children }: { children: React.ReactNode }) => {
   const disconnect = () => {
     console.log("Closing SSE connection...");
 
-    // Clear any pending reconnection attempts
     if (reconnectTimeoutRef.current) {
       clearTimeout(reconnectTimeoutRef.current);
       reconnectTimeoutRef.current = null;
     }
 
-    // Close the EventSource connection
     if (eventSourceRef.current) {
       eventSourceRef.current.close();
       eventSourceRef.current = null;
@@ -153,16 +145,13 @@ export const SSEProvider = ({ children }: { children: React.ReactNode }) => {
     setConnectionStatus("disconnected");
   };
 
-  // Establish connection when component mounts and clean up on unmount
   useEffect(() => {
     connect();
 
-    // Cleanup function to close connection when component unmounts or page is closed
     const handleBeforeUnload = () => {
       disconnect();
     };
 
-    // Handle page visibility changes to reconnect when tab becomes visible
     const handleVisibilityChange = () => {
       if (document.hidden) {
         console.log("Page hidden, maintaining SSE connection");
@@ -185,7 +174,8 @@ export const SSEProvider = ({ children }: { children: React.ReactNode }) => {
       document.removeEventListener("visibilitychange", handleVisibilityChange);
       disconnect();
     };
-  }, []); // Empty dependency array ensures this runs once on mount
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
     <SSEContext.Provider value={{ isConnected, lastEvent, connectionStatus }}>

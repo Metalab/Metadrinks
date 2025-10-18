@@ -7,6 +7,7 @@ import { UserProvider } from "@/components/user-context";
 import { SSEProvider } from "@/components/sse-context";
 import SSEConnectionStatus from "@/components/sse-connection-status";
 import { Toaster } from "@/components/ui/sonner";
+import { ThemeColorMeta } from "@/components/theme-color-meta";
 
 export default function RootLayoutClient({
   children,
@@ -20,11 +21,14 @@ export default function RootLayoutClient({
       enableSystem
       disableTransitionOnChange
     >
+      <ThemeColorMeta />
       <UserProvider>
         <AuthProvider>
           <SSEProvider>
-            <Header showSidebarTrigger={false} />
-            {children}
+            <div className="flex flex-col h-screen overflow-hidden">
+              <Header showSidebarTrigger={false} />
+              <div className="flex-1 overflow-hidden">{children}</div>
+            </div>
             <SSEConnectionStatus />
             <Toaster />
           </SSEProvider>

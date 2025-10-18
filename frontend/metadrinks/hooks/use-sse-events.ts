@@ -23,7 +23,6 @@ export const useSSEEvent = (
 ) => {
   const { lastEvent } = useSSE();
 
-  // Memoize the handler to prevent unnecessary re-renders
   const memoizedHandler = useCallback(handler, deps);
 
   useEffect(() => {
@@ -38,7 +37,7 @@ export const useSSEEvent = (
 };
 
 /**
- * Hook specifically for payment/transaction updates
+ * Hook for payment/transaction updates
  */
 export const useTransactionUpdates = (handler: (data: any) => void, deps: any[] = []) => {
   useSSEEvent('transaction_update', (event) => {
@@ -47,7 +46,7 @@ export const useTransactionUpdates = (handler: (data: any) => void, deps: any[] 
 };
 
 /**
- * Hook specifically for content updates
+ * Hook for content updates
  */
 export const useContentUpdates = (handler: (data: any) => void, deps: any[] = []) => {
   useSSEEvent('content_update', (event) => {

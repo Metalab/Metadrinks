@@ -3,13 +3,18 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { config } from "@/lib/config";
-import { useUser } from "@/components/user-context";
+import { useUser, User } from "@/components/user-context";
 
 interface AuthContextType {
   loggedIn: boolean;
   expiresIn: number | null;
-  login: (username: string, password?: string) => Promise<void>;
-  logout: () => void;
+  login: (
+    username: string,
+    password?: string,
+    redirect?: boolean
+  ) => Promise<User | null>;
+  logout: (redirect?: boolean) => void;
+  enableAutoRefresh: (enabled: boolean) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -17,12 +22,12 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [loggedIn, setLoggedIn] = useState(false);
   const [expiresIn, setExpiresIn] = useState<number | null>(null);
+  const [autoRefreshEnabled, setAutoRefreshEnabled] = useState(false);
   const router = useRouter();
   const { setUser } = useUser();
 
-  // Countdown logic
+  // countdown logic
   useEffect(() => {
-    let interval: NodeJS.Timeout;
     let refreshTimeout: NodeJS.Timeout | null = null;
 
     async function refresh() {
@@ -63,19 +68,19 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         const diff = Math.max(0, Math.floor((expTime - now) / 1000));
         setExpiresIn(diff);
 
-        // Update login status based on expiry
         if (diff <= 0) {
           setLoggedIn(false);
+          setUser(null);
           localStorage.removeItem("session_exp");
           if (refreshTimeout) {
             clearTimeout(refreshTimeout);
             refreshTimeout = null;
           }
+          router.push("/");
         } else {
           setLoggedIn(document.cookie.includes("drinks_pos_session="));
 
-          // Schedule refresh 1 minute before expiry if not already scheduled
-          if (diff > 60 && refreshTimeout === null) {
+          if (autoRefreshEnabled && diff > 60 && refreshTimeout === null) {
             refreshTimeout = setTimeout(() => {
               refresh();
               refreshTimeout = null;
@@ -92,14 +97,19 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       }
     }
     updateCountdown();
-    interval = setInterval(updateCountdown, 1000);
+    const interval = setInterval(updateCountdown, 1000);
     return () => {
       clearInterval(interval);
       if (refreshTimeout) clearTimeout(refreshTimeout);
     };
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoRefreshEnabled]);
 
-  const login = async (username: string, password?: string) => {
+  const login = async (
+    username: string,
+    password?: string,
+    redirect: boolean = true
+  ): Promise<User | null> => {
     try {
       const res = await fetch(`${config.apiBaseUrl}/auth/login`, {
         method: "POST",
@@ -119,8 +129,16 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         const expTime = new Date(data.expire).getTime().toString();
         localStorage.setItem("session_exp", expTime);
         setLoggedIn(true);
-        // user object is set in use-login.ts after login
-        router.push("/items");
+
+        if (data.user) {
+          setUser(data.user);
+        }
+
+        if (redirect) {
+          router.push("/items");
+        }
+
+        return data.user || null;
       } else {
         throw new Error("No expiry time received from server");
       }
@@ -132,7 +150,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
-  const logout = async () => {
+  const logout = async (redirect: boolean = true) => {
     await fetch(`${config.apiBaseUrl}/auth/logout`, {
       method: "POST",
       credentials: "include",
@@ -142,36 +160,20 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     localStorage.removeItem("session_exp");
     setLoggedIn(false);
     setUser(null);
-    router.push("/");
-  };
 
-  const refresh = async () => {
-    try {
-      const res = await fetch(`${config.apiBaseUrl}/auth/refresh`, {
-        method: "GET",
-        credentials: "include",
-      });
-      if (!res.ok) {
-        throw new Error("Failed to refresh session");
-      }
-      const data = await res.json();
-      if (data.expire) {
-        const expTime = new Date(data.expire).getTime().toString();
-        localStorage.setItem("session_exp", expTime);
-        setLoggedIn(true);
-      } else {
-        throw new Error("No expiry time in refresh response");
-      }
-    } catch (error) {
-      console.error("Session refresh failed:", error);
-      setLoggedIn(false);
-      localStorage.removeItem("session_exp");
+    if (redirect) {
       router.push("/");
     }
   };
 
+  const enableAutoRefresh = (enabled: boolean) => {
+    setAutoRefreshEnabled(enabled);
+  };
+
   return (
-    <AuthContext.Provider value={{ loggedIn, expiresIn, login, logout }}>
+    <AuthContext.Provider
+      value={{ loggedIn, expiresIn, login, logout, enableAutoRefresh }}
+    >
       {children}
     </AuthContext.Provider>
   );

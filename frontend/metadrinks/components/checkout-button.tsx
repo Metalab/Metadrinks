@@ -12,38 +12,12 @@ import { useUser } from "./user-context";
 import React from "react";
 
 export default function CheckoutButton() {
-  const { selectedItems, clearItems } = useSelectedItems();
+  const { clearItems } = useSelectedItems();
   const { user } = useUser();
 
-  async function handleComplete(result: { method: string; data?: any }) {
-    if (result.method !== "cash") return;
-
-    const payload = {
-      items: selectedItems.map((i) => ({ id: i.id, amount: i.quantity })),
-      payment_type: "cash",
-    } as const;
-
-    try {
-      const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/v1/purchases`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
-          credentials: "include",
-        }
-      );
-      console.log(JSON.stringify(payload));
-      if (!res.ok) {
-        console.error("Failed to create purchase", await res.text());
-        return;
-      }
-
-      clearItems();
-      console.log("Purchase created successfully");
-    } catch (err) {
-      console.error("Error creating purchase", err);
-    }
+  async function handleComplete(result: { method: string; data?: unknown }) {
+    clearItems();
+    console.log(`${result.method} payment completed successfully`);
   }
   return (
     <div

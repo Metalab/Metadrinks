@@ -3,23 +3,28 @@
 import { Input } from "@/components/ui/input";
 import { SearchIcon } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
-import { useSelectedItems } from "./selected-items-context";
+import { useAuth } from "./auth-context";
 
 interface Item {
   id: string;
   name: string;
   price: number;
-  barcode?: string;
+  barcodes?: string[];
 }
 
 interface SearchInputProps {
-  items: Item[];
+  items?: Item[];
+  visible?: boolean;
 }
 
-export function BarcodeSearchInput({ items }: SearchInputProps) {
+export function BarcodeSearchInput({
+  items = [],
+  visible = true,
+}: SearchInputProps) {
   const [value, setValue] = useState<string>("");
   const valueRef = useRef<string>("");
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const processedBarcodeRef = useRef<boolean>(false);
 
   const resetTimer = () => {
     if (timerRef.current) {
@@ -32,12 +37,38 @@ export function BarcodeSearchInput({ items }: SearchInputProps) {
     }, 5000); // 5 seconds
   };
 
-  const { addItem } = useSelectedItems();
+  const { loggedIn, login } = useAuth();
 
-  const handleBarcodeScan = (barcode: string) => {
-    const foundItem = items.find((item: Item) => item.barcode === barcode);
+  const handleBarcodeScan = async (barcode: string) => {
+    // If not logged in, store the barcode and login as guest
+    if (!loggedIn) {
+      sessionStorage.setItem("pendingBarcode", barcode);
+      try {
+        await login("Guest");
+      } catch (error) {
+        console.error("Failed to login as guest:", error);
+        sessionStorage.removeItem("pendingBarcode");
+      }
+      setValue("");
+      valueRef.current = "";
+      if (timerRef.current) {
+        clearTimeout(timerRef.current);
+        timerRef.current = null;
+      }
+      return;
+    }
+
+    // If logged in and we have items, dispatch event for the item to be added
+    // The items page will listen for this event and add it using the context
+    const foundItem = items.find((item: Item) =>
+      item.barcodes?.includes(barcode)
+    );
     if (foundItem) {
-      addItem(foundItem);
+      const event = new CustomEvent("barcode-item-scanned", {
+        detail: { item: foundItem },
+      });
+      window.dispatchEvent(event);
+
       setValue("");
       valueRef.current = "";
       if (timerRef.current) {
@@ -47,7 +78,32 @@ export function BarcodeSearchInput({ items }: SearchInputProps) {
     }
   };
 
+  // Check for pending barcode after login/page load
   useEffect(() => {
+    if (loggedIn && items.length > 0 && !processedBarcodeRef.current) {
+      const pendingBarcode = sessionStorage.getItem("pendingBarcode");
+      if (pendingBarcode) {
+        const foundItem = items.find((item: Item) =>
+          item.barcodes?.includes(pendingBarcode)
+        );
+        if (foundItem) {
+          // Dispatch event for pending item
+          const event = new CustomEvent("barcode-item-scanned", {
+            detail: { item: foundItem },
+          });
+          window.dispatchEvent(event);
+          processedBarcodeRef.current = true;
+        }
+        sessionStorage.removeItem("pendingBarcode");
+      }
+    }
+  }, [loggedIn, items]);
+
+  useEffect(() => {
+    if (document.activeElement?.tagName === "INPUT") {
+      return;
+    }
+
     const handleKeyPress = (event: KeyboardEvent) => {
       const key = event.key;
       if (/^[0-9]$/.test(key)) {
@@ -72,10 +128,15 @@ export function BarcodeSearchInput({ items }: SearchInputProps) {
         timerRef.current = null;
       }
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  if (!visible) {
+    return null;
+  }
+
   return (
-    <div className="fixed top-0 left-0 right-0 h-16 flex items-center justify-center z-10">
+    <div className="fixed top-0 left-0 right-0 h-16 flex items-center justify-center z-10 pointer-events-none">
       {/*make this invisible here*/}
       <div className="relative w-72">
         <SearchIcon className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -87,9 +148,6 @@ export function BarcodeSearchInput({ items }: SearchInputProps) {
           disabled={true}
           className="pl-10"
         />
-        {
-          //call product dialog from here with the barcode value
-        }
       </div>
     </div>
   );

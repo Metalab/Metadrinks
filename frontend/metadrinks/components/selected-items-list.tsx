@@ -12,11 +12,6 @@ export function SelectedItemsList() {
     );
   }
 
-  const totalPrice = selectedItems.reduce(
-    (sum, item) => sum + item.price * item.quantity,
-    0
-  );
-
   return (
     <div className="flex flex-col gap-4 p-4">
       <div className="flex flex-col gap-2">

@@ -13,7 +13,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { Dispatch, SetStateAction, FormEvent } from "react";
+import { Dispatch, SetStateAction } from "react";
 import { useRouter } from "next/navigation";
 import { config } from "@/lib/config";
 import { useLogin } from "@/hooks/use-login";
@@ -81,6 +81,7 @@ export function UserDialog({
                 id="name"
                 name="name"
                 placeholder="Your username"
+                maxLength={24}
                 defaultValue={username}
                 disabled={!!username}
                 required
