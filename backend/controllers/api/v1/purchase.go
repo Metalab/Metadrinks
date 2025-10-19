@@ -58,7 +58,7 @@ func CreatePurchase(c *gin.Context) {
 	clientTransactionId := ""
 	var transactionDescription []string
 	var transactionStatus sumupmodels.TransactionFullStatus
-	var returnedItemsArray []models.Item
+	var returnedItemsArray []models.PurchaseItem
 	userClaims := jwt.ExtractClaims(c)
 	userId := uuid.MustParse(userClaims["userId"].(string))
 	userTrust := userClaims["trusted"].(bool)
@@ -81,11 +81,11 @@ func CreatePurchase(c *gin.Context) {
 	for _, v := range input.Items {
 		item := FindItemById(v.ItemId)
 		finalCost += item.Price * v.Amount
-		returnedItemsArray = append(returnedItemsArray, models.Item{ItemId: v.ItemId, Name: item.Name, Price: item.Price, Amount: v.Amount})
+		returnedItemsArray = append(returnedItemsArray, models.PurchaseItem{ItemId: v.ItemId, ProductName: item.ProductName, ProductVariant: item.ProductVariant, Price: item.Price, Amount: v.Amount})
 		if v.Amount > 1 {
-			transactionDescription = append(transactionDescription, fmt.Sprintf("%s x%d ", item.Name, v.Amount))
+			transactionDescription = append(transactionDescription, fmt.Sprintf("%s x%d ", item.ProductName, v.Amount))
 		} else {
-			transactionDescription = append(transactionDescription, fmt.Sprintf("%s ", item.Name))
+			transactionDescription = append(transactionDescription, fmt.Sprintf("%s ", item.ProductName))
 		}
 	}
 
@@ -160,9 +160,9 @@ func FindPurchases(c *gin.Context) {
 		return
 	}
 	if !isAdmin {
-		models.DB.Where("created_by = ?", userId).Find(&purchases).Limit(limitInt)
+		models.DB.Where("created_by = ?", userId).Order("created_at DESC").Find(&purchases).Limit(limitInt)
 	} else {
-		models.DB.Find(&purchases).Limit(limitInt)
+		models.DB.Order("created_at DESC").Find(&purchases).Limit(limitInt)
 	}
 
 	c.Header("Content-Type", "application/json")
@@ -231,11 +231,11 @@ func UpdatePurchase(c *gin.Context) {
 
 	for _, v := range input.Items {
 		item := FindItemById(v.ItemId)
-		if item.Name == "No item found" {
+		if item.ProductName == "No item found" {
 			c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"error": "itemid " + strconv.FormatUint(uint64(v.ItemId), 10) + " not found"})
 		}
 		finalCost += (item.Price * v.Quantity)
-		returnArray = append(returnArray, models.Item{ItemId: v.ItemId, Name: item.Name, Quantity: v.Quantity, Price: item.Price})
+		returnArray = append(returnArray, models.Item{ItemId: v.ItemId, ProductName: item.ProductName, Quantity: v.Quantity, Price: item.Price})
 	}
 
 	finalCost += input.Tip
