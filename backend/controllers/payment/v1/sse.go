@@ -107,13 +107,18 @@ const (
 	SSENotificationTransactionUpdate string = "transaction_update"
 )
 
+type SSENotificationContentUpdatePayload struct {
+	Type string `json:"type"` //users or items, for now
+}
+
 type SSENotificationTransactionUpdatePayload struct {
 	ClientTransactionId string                            `json:"client_transaction_id"`
 	TransactionStatus   sumupmodels.TransactionFullStatus `json:"transaction_status"`
 }
 
 type SSENotificationPayload struct {
-	TransactionPayload *SSENotificationTransactionUpdatePayload
+	TransactionPayload *SSENotificationTransactionUpdatePayload `json:"transaction_payload"`
+	ContentPayload     *SSENotificationContentUpdatePayload     `json:"content_payload"`
 }
 
 func (Stream *Event) SendMessage(message string) {
