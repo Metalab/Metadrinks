@@ -5,14 +5,55 @@ import { ArrowUpDown, UserSearchIcon } from "lucide-react";
 import { ColumnDef } from "@tanstack/react-table";
 import { Purchase } from "@/types/purchase";
 import { Item } from "@/types/item";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { config } from "@/lib/config";
 
+// cache for resolved usernames
+const userCache: Map<string, string> = new Map();
+const userCacheListeners: Map<string, Set<(name: string) => void>> = new Map();
+
+const subscribeToUser = (userId: string, callback: (name: string) => void) => {
+  if (!userCacheListeners.has(userId)) {
+    userCacheListeners.set(userId, new Set());
+  }
+  userCacheListeners.get(userId)!.add(callback);
+
+  return () => {
+    const listeners = userCacheListeners.get(userId);
+    if (listeners) {
+      listeners.delete(callback);
+      if (listeners.size === 0) {
+        userCacheListeners.delete(userId);
+      }
+    }
+  };
+};
+
+const notifyUserResolved = (userId: string, userName: string) => {
+  userCache.set(userId, userName);
+  const listeners = userCacheListeners.get(userId);
+  if (listeners) {
+    listeners.forEach((callback) => callback(userName));
+  }
+};
+
 const UserIdCell = ({ userId }: { userId: string }) => {
-  const [userName, setUserName] = useState<string | null>(null);
+  const [userName, setUserName] = useState<string | null>(
+    userCache.get(userId) || null
+  );
   const [loading, setLoading] = useState(false);
 
+  useEffect(() => {
+    const unsubscribe = subscribeToUser(userId, setUserName);
+    return unsubscribe;
+  }, [userId]);
+
   const resolveUser = async () => {
+    if (userCache.has(userId)) {
+      setUserName(userCache.get(userId)!);
+      return;
+    }
+
     setLoading(true);
     try {
       const res = await fetch(`${config.apiBaseUrl}/api/v1/users/${userId}`, {
@@ -20,10 +61,10 @@ const UserIdCell = ({ userId }: { userId: string }) => {
       });
       const data = await res.json();
       const user = data.data || data;
-      setUserName(user.name);
+      notifyUserResolved(userId, user.name);
     } catch (error) {
       console.error("Failed to fetch user:", error);
-      setUserName("Unknown");
+      notifyUserResolved(userId, "Unknown");
     } finally {
       setLoading(false);
     }
