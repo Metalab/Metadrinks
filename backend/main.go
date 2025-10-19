@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"os"
 	"strings"
@@ -19,7 +20,6 @@ import (
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
-	"github.com/joho/godotenv"
 
 	_ "metalab/metadrinks/docs"
 )
@@ -34,28 +34,9 @@ import (
 //	@name						drinks_pos_session
 
 func main() {
-	err := godotenv.Load()
-	if err != nil {
-		log.Fatal("Error loading .env file")
-	}
-
-	enforcedVars := []string{
-		"SUMUP_API_KEY",
-		"SUMUP_RETURN_URL",
-		"JWT_SECRET",
-		"GIN_TRUSTED_PROXIES",
-		"CORS_ALLOWED_ORIGINS",
-		"DB_HOST",
-		"DB_USER",
-		"DB_PASSWORD",
-		"DB_DATABASE",
-		"DB_PORT",
-		"DB_TIMEZONE",
-	}
-	for _, v := range enforcedVars {
-		if os.Getenv(v) == "" {
-			panic("Environment variable " + v + " is not set. Please set it before running the application.")
-		}
+	if err := models.LoadEnvironmentVariables(); err != nil {
+		fmt.Printf("[ERROR] %s\n", err.Error())
+		os.Exit(1)
 	}
 
 	r := gin.Default()
