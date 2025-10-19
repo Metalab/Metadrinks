@@ -156,7 +156,6 @@ function CashForm({ onComplete }: PaymentFormProps) {
       }
 
       const result = await response.json();
-      console.log("Cash purchase created successfully:", result);
       setPaymentResult({ method: "cash", data: result });
       setIsCompleted(true);
     } catch (error) {
@@ -167,10 +166,6 @@ function CashForm({ onComplete }: PaymentFormProps) {
   };
 
   if (isCompleted) {
-    console.log(
-      "Rendering PaymentCompletedState for cash with countdown:",
-      countdown
-    );
     return <PaymentCompletedState method="cash" countdown={countdown} />;
   }
 
@@ -268,7 +263,6 @@ function CardForm({ onComplete }: PaymentFormProps) {
       }
 
       const result = await response.json();
-      console.log("Purchase created:", result);
       const transactionId = result.data?.client_transaction_id;
 
       if (!transactionId) {
@@ -310,10 +304,6 @@ function CardForm({ onComplete }: PaymentFormProps) {
   };
 
   if (isCompleted) {
-    console.log(
-      "Rendering PaymentCompletedState for card with countdown:",
-      countdown
-    );
     return <PaymentCompletedState method="card" countdown={countdown} />;
   }
 
@@ -430,15 +420,12 @@ function BalanceForm({ onComplete }: PaymentFormProps) {
           } else if (errorData.error) {
             errorMessage = errorData.error;
           }
-        } catch {
-          // If parsing fails, use the status text
-        }
+        } catch {}
 
         throw new Error(errorMessage);
       }
 
       const result = await response.json();
-      console.log("Balance purchase created successfully:", result);
       setPaymentResult({ method: "balance", data: result });
       setIsCompleted(true);
     } catch (error) {
@@ -450,10 +437,6 @@ function BalanceForm({ onComplete }: PaymentFormProps) {
   };
 
   if (isCompleted) {
-    console.log(
-      "Rendering PaymentCompletedState for balance with countdown:",
-      countdown
-    );
     return <PaymentCompletedState method="balance" countdown={countdown} />;
   }
 

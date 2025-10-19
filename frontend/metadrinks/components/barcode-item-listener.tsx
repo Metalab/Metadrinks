@@ -2,14 +2,7 @@
 
 import { useEffect } from "react";
 import { useSelectedItems } from "./selected-items-context";
-
-type Item = {
-  id: string;
-  name: string;
-  image?: string;
-  price: number;
-  barcodes?: string[];
-};
+import { Item } from "@/types/item";
 
 export function BarcodeItemListener() {
   const { addItem } = useSelectedItems();

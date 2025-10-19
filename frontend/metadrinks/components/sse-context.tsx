@@ -36,7 +36,7 @@ export const SSEProvider = ({ children }: { children: React.ReactNode }) => {
   const eventSourceRef = useRef<EventSource | null>(null);
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const hasEverConnected = useRef(false);
-  const reconnectDelay = 5000; // 5 seconds
+  const reconnectDelay = 2500; // 2.5 seconds
 
   const connect = () => {
     if (eventSourceRef.current?.readyState === EventSource.OPEN) {
@@ -89,8 +89,6 @@ export const SSEProvider = ({ children }: { children: React.ReactNode }) => {
 
         const status = hasEverConnected.current ? "reconnecting" : "error";
         setConnectionStatus(status);
-
-        console.log(`SSE reconnection attempt in ${reconnectDelay}ms`);
 
         reconnectTimeoutRef.current = setTimeout(() => {
           connect();

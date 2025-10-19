@@ -25,9 +25,9 @@ export default function RootLayoutClient({
       <UserProvider>
         <AuthProvider>
           <SSEProvider>
-            <div className="flex flex-col h-screen overflow-hidden">
+            <div className="flex flex-col h-screen">
               <Header showSidebarTrigger={false} />
-              <div className="flex-1 overflow-hidden">{children}</div>
+              <div className="flex-1">{children}</div>
             </div>
             <SSEConnectionStatus />
             <Toaster />

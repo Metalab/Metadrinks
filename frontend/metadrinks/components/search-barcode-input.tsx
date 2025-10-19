@@ -78,7 +78,6 @@ export function BarcodeSearchInput({
     }
   };
 
-  // Check for pending barcode after login/page load
   useEffect(() => {
     if (loggedIn && items.length > 0 && !processedBarcodeRef.current) {
       const pendingBarcode = sessionStorage.getItem("pendingBarcode");
@@ -87,7 +86,6 @@ export function BarcodeSearchInput({
           item.barcodes?.includes(pendingBarcode)
         );
         if (foundItem) {
-          // Dispatch event for pending item
           const event = new CustomEvent("barcode-item-scanned", {
             detail: { item: foundItem },
           });

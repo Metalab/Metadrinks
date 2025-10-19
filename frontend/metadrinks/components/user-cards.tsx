@@ -45,6 +45,7 @@ export default function UserCards({ search = "" }: { search?: string }) {
         setOpen={setDialogOpen}
         username={dialogUsername}
         description="This user has enabled password protection. Please enter the password to continue."
+        passwordInputMode="numeric"
       />
       {filteredUsers.length === 0 ? (
         <div className="text-gray-500">No results found.</div>

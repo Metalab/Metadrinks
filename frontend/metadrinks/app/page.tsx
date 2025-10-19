@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import UserCards from "@/components/user-cards";
 import { useAuth } from "@/components/auth-context";
+import { useContentUpdates } from "@/hooks/use-sse-events";
 import { PlusIcon, SearchIcon } from "lucide-react";
 import { UserDialog } from "@/components/user-dialog";
 import { BarcodeSearchInput } from "@/components/search-barcode-input";
@@ -21,6 +22,12 @@ export default function Home() {
   const handleUserCreated = () => {
     setRefreshTrigger((prev) => prev + 1);
   };
+
+  useContentUpdates((data) => {
+    if (data.content_payload.type === "users") {
+      setRefreshTrigger((prev) => prev + 1);
+    }
+  }, []);
 
   const handleGuestLogin = async () => {
     setGuestLoading(true);

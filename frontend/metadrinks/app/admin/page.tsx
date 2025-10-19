@@ -5,20 +5,12 @@ import { useState, useEffect } from "react";
 import PasswordDialog from "@/components/password-dialog";
 
 export default function AdminPage() {
-  const { loggedIn, logout, enableAutoRefresh } = useAuth();
+  const { loggedIn, logout } = useAuth();
   const { user } = useUser();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [errorMessage, setErrorMessage] = useState(
     "Please log in with an admin account to access this page."
   );
-
-  useEffect(() => {
-    enableAutoRefresh(true);
-
-    return () => {
-      enableAutoRefresh(false);
-    };
-  }, [enableAutoRefresh]);
 
   useEffect(() => {
     if (loggedIn && user) {
@@ -58,7 +50,7 @@ export default function AdminPage() {
   };
 
   return (
-    <div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16">
+    <div className="h-full overflow-auto">
       <PasswordDialog
         open={dialogOpen}
         setOpen={setDialogOpen}

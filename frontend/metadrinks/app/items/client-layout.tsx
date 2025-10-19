@@ -18,8 +18,8 @@ export default function ItemsClientLayout({
     <SelectedItemsProvider>
       <BarcodeItemListener />
       <SidebarProvider>
-        <div className="relative flex h-full">
-          <main className="flex-1 overflow-auto">{children}</main>
+        <div className="relative flex w-full h-full">
+          <main className="flex-1">{children}</main>
           {loggedIn && <ItemsSidebar />}
         </div>
       </SidebarProvider>

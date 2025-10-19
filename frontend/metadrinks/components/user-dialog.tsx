@@ -67,7 +67,10 @@ export function UserDialog({
   return (
     <>
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="sm:max-w-[425px]">
+        <DialogContent
+          className="sm:max-w-[425px]"
+          onOpenAutoFocus={(e) => e.preventDefault()}
+        >
           <DialogHeader>
             <DialogTitle>Create User</DialogTitle>
             <DialogDescription>
@@ -85,6 +88,7 @@ export function UserDialog({
                 defaultValue={username}
                 disabled={!!username}
                 required
+                autoFocus={false}
               />
             </div>
             <div className="grid gap-3">
@@ -98,6 +102,7 @@ export function UserDialog({
                 maxLength={10}
                 pattern="[0-9]*"
                 inputMode="numeric"
+                autoFocus={false}
               />
             </div>
           </div>
@@ -118,6 +123,7 @@ export function UserDialog({
         setOpen={setDialogOpen}
         username={dialogUsername}
         description="Enter your PIN to log in."
+        passwordInputMode="numeric"
       />
     </>
   );

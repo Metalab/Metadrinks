@@ -26,6 +26,7 @@ export default function PasswordDialog({
   redirect = true,
   onSuccess,
   onValidate,
+  passwordInputMode = "text",
 }: {
   open: boolean;
   setOpen: (open: boolean) => void;
@@ -37,6 +38,15 @@ export default function PasswordDialog({
   onValidate?: (
     user: User | null
   ) => Promise<{ isValid: boolean; error?: string }>;
+  passwordInputMode?:
+    | "text"
+    | "numeric"
+    | "decimal"
+    | "tel"
+    | "search"
+    | "email"
+    | "url"
+    | "none";
 }) {
   const [localUsername, setLocalUsername] = React.useState("");
   const [password, setPassword] = React.useState("");
@@ -124,6 +134,7 @@ export default function PasswordDialog({
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   disabled={loading}
+                  inputMode={passwordInputMode}
                 />
               </div>
             </div>

@@ -1,23 +1,19 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import ItemCards from "@/components/item-cards";
 import { BarcodeSearchInput } from "@/components/search-barcode-input";
+import { useSelectedItems } from "@/components/selected-items-context";
+import { useContentUpdates } from "@/hooks/use-sse-events";
 import { config } from "@/lib/config";
-
-type Item = {
-  id: string;
-  name: string;
-  image?: string;
-  price: number;
-  barcodes?: string[];
-};
+import { Item } from "@/types/item";
 
 export default function ItemsPage() {
   const [items, setItems] = useState<Item[]>([]);
   const [loading, setLoading] = useState(true);
+  const { addItem } = useSelectedItems();
 
-  useEffect(() => {
+  const fetchItems = useCallback(() => {
     fetch(`${config.apiBaseUrl}/api/v1/items`)
       .then((res) => res.json())
       .then((data) => {
@@ -31,14 +27,27 @@ export default function ItemsPage() {
       });
   }, []);
 
+  useEffect(() => {
+    fetchItems();
+  }, [fetchItems]);
+
+  useContentUpdates(
+    (data) => {
+      if (data.content_payload.type === "items") {
+        fetchItems();
+      }
+    },
+    [fetchItems]
+  );
+
   if (loading) {
     return <div className="flex justify-center mt-20">Loading...</div>;
   }
 
   return (
-    <div>
+    <div className="p-4">
       <BarcodeSearchInput items={items} />
-      <ItemCards items={items} />
+      <ItemCards items={items} onItemClick={addItem} />
     </div>
   );
 }

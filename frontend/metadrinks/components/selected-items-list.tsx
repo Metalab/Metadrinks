@@ -21,17 +21,15 @@ export function SelectedItemsList() {
             className="flex items-center justify-between bg-background p-2 rounded-md"
           >
             <div className="flex-1">
-              <div className="font-medium flex items-center gap-2">
-                {item.name}
-                <span className="px-2 py-0.5 bg-primary/10 text-primary rounded text-sm">
-                  x{item.quantity}
-                </span>
-              </div>
+              <div className="font-medium w-32">{item.name}</div>
               <div className="text-sm text-gray-500">
                 {((item.price * item.quantity) / 100).toFixed(2)}€
               </div>
             </div>
             <div className="flex items-center gap-2">
+              <div className="flex items-center justify-center h-8 min-w-8 px-2 bg-primary/10 text-primary rounded text-sm font-medium">
+                x{item.quantity}
+              </div>
               <Button
                 variant="ghost"
                 size="sm"

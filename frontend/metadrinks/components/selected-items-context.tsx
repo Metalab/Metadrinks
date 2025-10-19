@@ -1,14 +1,7 @@
 "use client";
 
 import { createContext, useContext, useState, ReactNode } from "react";
-
-type Item = {
-  id: string;
-  name: string;
-  image?: string;
-  price: number;
-  barcodes?: string[];
-};
+import { Item } from "@/types/item";
 
 type SelectedItemWithQuantity = Item & {
   quantity: number;

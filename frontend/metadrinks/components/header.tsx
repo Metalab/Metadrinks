@@ -26,25 +26,43 @@ export default function Header({ showSidebarTrigger = false }: HeaderProps) {
       <div className="flex gap-[12px] justify-end items-center">
         {showSidebarTrigger && <SidebarTrigger />}
         <NavigationMenu>
-          <NavigationMenuList>
-            <NavigationMenuItem>
-              <NavigationMenuLink asChild>
-                <Link href="/">Home</Link>
-              </NavigationMenuLink>
-            </NavigationMenuItem>
-            <NavigationMenuItem>
-              <NavigationMenuLink asChild>
-                <Link href="/items">Items</Link>
-              </NavigationMenuLink>
-            </NavigationMenuItem>
-            {loggedIn && user?.is_admin && (
+          {loggedIn && user?.is_admin ? (
+            <NavigationMenuList>
               <NavigationMenuItem>
                 <NavigationMenuLink asChild>
-                  <Link href="/admin">Admin</Link>
+                  <Link href="/admin">Home</Link>
                 </NavigationMenuLink>
               </NavigationMenuItem>
-            )}
-          </NavigationMenuList>
+              <NavigationMenuItem>
+                <NavigationMenuLink asChild>
+                  <Link href="/admin/items">Items</Link>
+                </NavigationMenuLink>
+              </NavigationMenuItem>
+              <NavigationMenuItem>
+                <NavigationMenuLink asChild>
+                  <Link href="/admin/users">Users</Link>
+                </NavigationMenuLink>
+              </NavigationMenuItem>
+              <NavigationMenuItem>
+                <NavigationMenuLink asChild>
+                  <Link href="/admin/purchases">Purchases</Link>
+                </NavigationMenuLink>
+              </NavigationMenuItem>
+            </NavigationMenuList>
+          ) : (
+            <NavigationMenuList>
+              <NavigationMenuItem>
+                <NavigationMenuLink asChild>
+                  <Link href="/">Home</Link>
+                </NavigationMenuLink>
+              </NavigationMenuItem>
+              <NavigationMenuItem>
+                <NavigationMenuLink asChild>
+                  <Link href="/items">Items</Link>
+                </NavigationMenuLink>
+              </NavigationMenuItem>
+            </NavigationMenuList>
+          )}
         </NavigationMenu>
         {loggedIn && (
           <Button variant="destructive" onClick={() => logout()}>
