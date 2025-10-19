@@ -11,7 +11,21 @@ import { config } from "@/lib/config";
 
 interface SSEEvent {
   type: string;
-  data: unknown;
+  data: SSENotificationPayload;
+}
+
+interface SSENotificationPayload {
+  transaction_payload?: SSENotificationTransactionUpdatePayload;
+  content_payload?: SSENotificationContentUpdatePayload;
+}
+
+interface SSENotificationTransactionUpdatePayload {
+  client_transaction_id: string;
+  transaction_status: "cancelled" | "failed" | "pending" | "successful";
+}
+
+interface SSENotificationContentUpdatePayload {
+  type: "users" | "items";
 }
 
 interface SSEContextType {

@@ -213,10 +213,8 @@ function CardForm({ onComplete }: PaymentFormProps) {
 
   useEffect(() => {
     if (lastEvent?.type === "transaction_update" && clientTransactionId) {
-      const data = lastEvent.data as {
-        client_transaction_id: string;
-        transaction_status: string;
-      };
+      const data = lastEvent.data.transaction_payload;
+      if (!data) return;
       const { client_transaction_id, transaction_status } = data;
 
       if (client_transaction_id === clientTransactionId) {
