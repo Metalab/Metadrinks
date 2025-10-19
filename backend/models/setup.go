@@ -17,7 +17,7 @@ import (
 var DB *gorm.DB
 
 func ConnectDatabase() {
-	dsn := "host=" + os.Getenv("DB_HOST") + " user=" + os.Getenv("POSTGRES_USER") + " password=" + os.Getenv("POSTGRES_PASSWORD") + " dbname=" + os.Getenv("POSTGRES_DATABASE") + " port=" + os.Getenv("DB_PORT") + " sslmode=disable timezone=" + os.Getenv("DB_TIMEZONE")
+	dsn := "host=" + os.Getenv("DB_HOST") + " user=" + os.Getenv("POSTGRES_USER") + " password=" + os.Getenv("POSTGRES_PASSWORD") + " dbname=" + os.Getenv("POSTGRES_DB") + " port=" + os.Getenv("DB_PORT") + " sslmode=disable timezone=" + os.Getenv("TZ")
 	database, err := gorm.Open(postgres.Open(dsn), &gorm.Config{}) // change the database provider if necessary
 	if err != nil {
 		panic("Failed to connect to database!" + err.Error())
@@ -51,9 +51,9 @@ func LoadEnvironmentVariables() error {
 		"DB_HOST",
 		"POSTGRES_USER",
 		"POSTGRES_PASSWORD",
-		"POSTGRES_DATABASE",
+		"POSTGRES_DB",
 		"DB_PORT",
-		"DB_TIMEZONE",
+		"TZ",
 	}
 
 	// Check if any required vars are missing
