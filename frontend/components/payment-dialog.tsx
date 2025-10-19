@@ -279,7 +279,7 @@ function CardForm({ onComplete }: PaymentFormProps) {
 
   const terminatePayment = async () => {
     try {
-      await fetch(`${config.apiBaseUrl}/payment/v1/readers/terminate`, {
+      await fetch(`${config.apiBaseUrl}/api/payment/v1/readers/terminate`, {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
         credentials: "include",

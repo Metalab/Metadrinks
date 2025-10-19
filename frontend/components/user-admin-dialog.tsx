@@ -98,7 +98,7 @@ export default function UserAdminDialog({
 
       const url = isEditMode
         ? `${config.apiBaseUrl}/api/v1/users/${user.id}`
-        : `${config.apiBaseUrl}/admin/v1/users`;
+        : `${config.apiBaseUrl}/api/admin/v1/users`;
 
       const method = isEditMode ? "PUT" : "POST";
 

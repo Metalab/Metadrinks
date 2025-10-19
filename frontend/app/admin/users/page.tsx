@@ -44,7 +44,7 @@ export default function AdminUsersPage() {
 
   const fetchUsers = async () => {
     try {
-      const res = await fetch(`${config.apiBaseUrl}/admin/v1/users`, {
+      const res = await fetch(`${config.apiBaseUrl}/api/admin/v1/users`, {
         credentials: "include",
       });
       const data = await res.json();

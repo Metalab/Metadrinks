@@ -1,7 +1,7 @@
 package admin
 
 import (
-	"metalab/metadrinks/controllers/admin/v1"
+	"metalab/metadrinks/controllers/api/admin/v1"
 
 	"github.com/gin-gonic/gin"
 )

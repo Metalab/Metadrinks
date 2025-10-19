@@ -11,10 +11,8 @@ import (
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
 
-	"metalab/metadrinks/controllers/admin"
 	"metalab/metadrinks/controllers/api"
 	"metalab/metadrinks/controllers/auth"
-	"metalab/metadrinks/controllers/payment"
 	"metalab/metadrinks/libs"
 	"metalab/metadrinks/models"
 
@@ -67,10 +65,8 @@ func main() {
 	r.Use(auth.HandlerMiddleware(authMiddleware))
 	auth.JWTAuthMiddleware = authMiddleware
 
-	admin.RegisterRoutesAdmin(r.Group("/admin"))
 	api.RegisterRoutesAPI(r.Group("/api"))
 	auth.RegisterRoutesAuth(r.Group("/auth"))
-	payment.RegisterRoutesPayment(r.Group("/payment"))
 
 	swaggerGroup := r.Group("/docs")
 	swaggerGroup.StaticFile("/swagger.json", "docs/swagger.json")

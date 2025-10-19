@@ -54,7 +54,7 @@ export const SSEProvider = ({ children }: { children: React.ReactNode }) => {
 
     try {
       const eventSource = new EventSource(
-        `${config.apiBaseUrl}/payment/v1/events`
+        `${config.apiBaseUrl}/api/payment/v1/events`
       );
 
       eventSourceRef.current = eventSource;
