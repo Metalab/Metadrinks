@@ -51,11 +51,11 @@ const UserIdCell = ({ userId }: { userId: string }) => {
 
 export const columns: ColumnDef<Purchase>[] = [
   {
-    accessorKey: "id",
-    header: "Purchase ID",
+    accessorKey: "created_by",
+    header: "User ID",
     cell: ({ row }) => {
-      const id = row.getValue("id") as string;
-      return <div className="font-mono text-xs">{id.slice(0, 8)}...</div>;
+      const userId = row.getValue("created_by") as string;
+      return <UserIdCell userId={userId} />;
     },
   },
   {
