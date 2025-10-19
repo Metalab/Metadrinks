@@ -3,7 +3,7 @@ package v1
 import (
 	"encoding/json"
 	"fmt"
-	sse "metalab/metadrinks/controllers/payment/v1"
+	sse "metalab/metadrinks/controllers/api/payment/v1"
 	"net/http"
 
 	"metalab/metadrinks/models"
