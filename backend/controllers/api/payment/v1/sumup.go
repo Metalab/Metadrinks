@@ -312,7 +312,7 @@ func GetIncomingWebhook(c *gin.Context) {
 		NotificationType: SSENotificationType(SSENotificationTransactionUpdate),
 		NotificationData: SSENotificationPayload{
 			TransactionPayload: &SSENotificationTransactionUpdatePayload{
-				ClientTransactionId: input.Payload.TransactionId,
+				ClientTransactionId: input.Payload.ClientTransactionId,
 				TransactionStatus:   input.Payload.Status,
 			},
 		},
