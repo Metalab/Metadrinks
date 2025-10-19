@@ -155,7 +155,7 @@ export const columns: ColumnDef<Purchase>[] = [
         <div className="text-sm">
           {items.map((item, idx) => (
             <div key={idx}>
-              {item.amount}x {item.name}
+              {item.amount}x {item.name} {item.variant}
             </div>
           ))}
         </div>
