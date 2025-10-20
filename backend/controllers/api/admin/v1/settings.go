@@ -20,7 +20,8 @@ func FindSettings(c *gin.Context) {
 }
 
 type UpdateSettingsInput struct {
-	MaintenanceMode *bool `json:"maintenance,omitempty"`
+	MaintenanceMode *bool  `json:"maintenance,omitempty"`
+	DefaultReaderId string `json:"default_reader_id,omitempty"`
 }
 
 func UpdateSettings(c *gin.Context) {
@@ -36,7 +37,7 @@ func UpdateSettings(c *gin.Context) {
 		return
 	}
 
-	updatedSettings := models.Settings{MaintenanceMode: input.MaintenanceMode}
+	updatedSettings := models.Settings{MaintenanceMode: input.MaintenanceMode, DefaultReaderId: input.DefaultReaderId}
 
 	models.DB.Model(&settings).Updates(&updatedSettings)
 
