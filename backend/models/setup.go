@@ -26,6 +26,7 @@ func ConnectDatabase() {
 	database.AutoMigrate(&User{})
 	database.AutoMigrate(&Item{})
 	database.AutoMigrate(&Purchase{})
+	database.AutoMigrate(&Settings{})
 	database.AutoMigrate(&models.Reader{})
 
 	hashedPassword, err := crypto.HashPasswordSecure("") //bcrypt.GenerateFromPassword([]byte(""), bcrypt.DefaultCost)
@@ -35,7 +36,13 @@ func ConnectDatabase() {
 	}
 
 	if database.Limit(1).Find(&User{Name: "guest"}).RowsAffected == 0 {
-		database.Create(&User{UserID: uuid.Nil, Name: "Guest", Password: string(hashedPassword), IsTrusted: false, IsRestricted: true, UsedAt: time.Now().Local()})
+		database.Create(&User{UserID: uuid.Nil, Name: "Guest", Password: hashedPassword, IsTrusted: BoolPointer(false), IsRestricted: BoolPointer(true), UsedAt: time.Now().Local()})
+		fmt.Println("[INFO] Created guest user")
+	}
+
+	if database.Where("id = ?", 1).Find(&Settings{}).RowsAffected == 0 {
+		database.Create(&Settings{ID: 1, MaintenanceMode: BoolPointer(false)})
+		fmt.Println("[INFO] Created default settings")
 	}
 
 	DB = database

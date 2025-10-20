@@ -1,6 +1,7 @@
 package v1
 
 import (
+	adminv1 "metalab/metadrinks/controllers/api/admin/v1"
 	"metalab/metadrinks/controllers/auth"
 
 	"github.com/gin-gonic/gin"
@@ -27,4 +28,7 @@ func RegisterRoutesV1(r *gin.RouterGroup) {
 	p.GET("/:id", auth.JWTAuthMiddleware.MiddlewareFunc(), FindPurchase)
 	//p.PATCH("/:id", UpdatePurchase)
 	//p.DELETE("/:id", DeletePurchase)
+
+	s := r.Group("settings")
+	s.GET("", adminv1.FindSettings)
 }
