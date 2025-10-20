@@ -16,10 +16,10 @@ import (
 type CreateUserAdminInput struct {
 	Name         string `json:"name" binding:"required"`
 	Password     string `json:"password,omitempty"`
-	IsTrusted    bool   `json:"is_trusted,omitempty"`
-	IsAdmin      bool   `json:"is_admin,omitempty"`
-	IsActive     bool   `json:"is_active,omitempty"`
-	IsRestricted bool   `json:"is_restricted,omitempty"`
+	IsTrusted    *bool  `json:"is_trusted,omitempty"`
+	IsAdmin      *bool  `json:"is_admin,omitempty"`
+	IsActive     *bool  `json:"is_active,omitempty"`
+	IsRestricted *bool  `json:"is_restricted,omitempty"`
 }
 
 // CreateUser godoc

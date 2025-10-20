@@ -21,7 +21,7 @@ type CreateItemInput struct {
 	Price          uint                   `json:"price" binding:"required"`
 	Barcodes       pq.StringArray         `json:"barcodes"`
 	NutritionInfo  []models.NutritionInfo `json:"nutrition_info"`
-	IsActive       bool                   `json:"is_active" default:"true"`
+	IsActive       *bool                  `json:"is_active" default:"true"`
 }
 
 //	@BasePath	/api/v1
@@ -137,7 +137,7 @@ type UpdateItemInput struct {
 	Price          uint                   `json:"price,omitempty"`
 	Barcodes       pq.StringArray         `json:"barcodes,omitempty"`
 	NutritionInfo  []models.NutritionInfo `json:"nutrition_info,omitempty"`
-	IsActive       bool                   `json:"is_active,omitempty"`
+	IsActive       *bool                  `json:"is_active,omitempty"`
 }
 
 // UpdateItem godoc

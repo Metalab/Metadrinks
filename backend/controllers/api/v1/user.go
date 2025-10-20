@@ -132,10 +132,10 @@ type UpdateUserInput struct {
 	Password     string `json:"password,omitempty"`
 	Image        string `json:"image,omitempty"`
 	Balance      int    `json:"balance,omitempty"`
-	IsTrusted    bool   `json:"is_trusted,omitempty"`
-	IsAdmin      bool   `json:"is_admin,omitempty"`
-	IsActive     bool   `json:"is_active,omitempty"`
-	IsRestricted bool   `json:"is_restricted,omitempty"`
+	IsTrusted    *bool  `json:"is_trusted,omitempty"`
+	IsAdmin      *bool  `json:"is_admin,omitempty"`
+	IsActive     *bool  `json:"is_active,omitempty"`
+	IsRestricted *bool  `json:"is_restricted,omitempty"`
 }
 
 func UpdateUser(c *gin.Context) {
@@ -246,7 +246,7 @@ func GetUserBalance(userId uuid.UUID) (*int, error) {
 		return nil, err
 	}
 
-	if user.IsRestricted {
+	if *user.IsRestricted {
 		return nil, fmt.Errorf("user is restricted")
 	}
 

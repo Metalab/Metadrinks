@@ -41,6 +41,10 @@ func ConnectDatabase() {
 	DB = database
 }
 
+func BoolPointer(b bool) *bool {
+	return &b
+}
+
 func LoadEnvironmentVariables() error {
 	enforcedVars := []string{
 		"SUMUP_API_KEY",

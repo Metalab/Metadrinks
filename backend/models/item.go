@@ -17,7 +17,7 @@ type Item struct {
 	Amount         uint            `json:"amount,omitempty" gorm:"-"` //do not write this to db - it is only used when creating a purchase
 	Barcodes       pq.StringArray  `json:"barcodes,omitempty" gorm:"type:bytes;serializer:gob"`
 	NutritionInfo  []NutritionInfo `json:"nutrition_info,omitempty" gorm:"type:bytes;serializer:gob"`
-	IsActive       bool            `json:"is_active" gorm:"default:true"`
+	IsActive       *bool           `json:"is_active" gorm:"default:true"`
 	CreatedAt      time.Time       `json:"created_at"`
 }
 
