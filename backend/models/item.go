@@ -5,6 +5,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/lib/pq"
+	"gorm.io/gorm"
 )
 
 type Item struct {
@@ -18,7 +19,8 @@ type Item struct {
 	Barcodes       pq.StringArray  `json:"barcodes,omitempty" gorm:"type:bytes;serializer:gob"`
 	NutritionInfo  []NutritionInfo `json:"nutrition_info,omitempty" gorm:"type:bytes;serializer:gob"`
 	IsActive       *bool           `json:"is_active" gorm:"default:true"`
-	CreatedAt      time.Time       `json:"created_at"`
+	CreatedAt      time.Time       `json:"-"`
+	DeletedAt      gorm.DeletedAt  `json:"deleted_at,omitempty"`
 }
 
 type NutritionInfo struct {
