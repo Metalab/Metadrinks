@@ -11,7 +11,7 @@ func RegisterRoutesV1(r *gin.RouterGroup) {
 	r.GET("/events", SSEHeadersMiddleware(), Stream.ServeHTTP())
 
 	re := r.Group("readers")
-	re.GET("/", FindReaders)
+	re.GET("", FindReaders)
 	re.GET("/:id", FindReader)
 	re.GET("/api", auth.JWTAuthMiddleware.MiddlewareFunc(), FindApiReaders)
 	re.POST("/link", auth.JWTAuthMiddleware.MiddlewareFunc(), CreateReader)
