@@ -299,6 +299,52 @@ func UnlinkReader(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"data": "success"})
 }
 
+func DeleteReader(c *gin.Context) {
+	var reader sumupmodels.Reader
+	if err := models.DB.Where("reader_id = ?", c.Param("id")).First(&reader).Error; err != nil {
+		c.AbortWithStatus(http.StatusNotFound)
+		return
+	}
+
+	unlinkErr := libs.SumupClient.Readers.DeleteReader(context.Background(), *libs.SumupAccount.MerchantProfile.MerchantCode, readers.ReaderId(reader.ReaderId))
+	if unlinkErr != nil {
+		fmt.Printf("error while unlinking reader by id: %s\n", unlinkErr.Error())
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": unlinkErr.Error()})
+		return
+	}
+
+	var settings models.Settings
+	if err := models.DB.Where("id = ?", 1).First(&settings).Error; err != nil {
+		c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"error": "record not found"})
+		return
+	}
+
+	if settings.DefaultReaderId != nil && *settings.DefaultReaderId == string(reader.ReaderId) {
+		updatedSettings := models.Settings{MaintenanceMode: settings.MaintenanceMode, DefaultReaderId: nil}
+		models.DB.Model(&settings).Updates(&updatedSettings)
+	}
+	models.DB.Where("reader_id = ?", reader.ReaderId).Delete(&reader)
+
+	notification := SSENotification{
+		NotificationType: SSENotificationType(SSENotificationContentUpdate),
+		NotificationData: SSENotificationPayload{
+			ContentPayload: &SSENotificationContentUpdatePayload{
+				Type: "settings",
+			},
+		},
+	}
+
+	notificationJSON, err := json.Marshal(notification)
+	if err != nil {
+		fmt.Printf("error marshalling notification: %s\n", err.Error())
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "failed to process notification"})
+		return
+	}
+
+	Stream.SendMessage(string(notificationJSON))
+	c.JSON(http.StatusOK, gin.H{"data": "success"})
+}
+
 // GetIncomingWebhook godoc
 //
 //	@Summary		Get incoming webhook
