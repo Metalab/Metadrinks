@@ -12,6 +12,7 @@ import { useAuth } from "@/components/auth-context";
 import { useUser } from "@/components/user-context";
 import { Button } from "@/components/ui/button";
 import { SidebarTrigger } from "@/components/ui/sidebar";
+import SettingsDialog from "@/components/settings-dialog";
 
 type HeaderProps = {
   showSidebarTrigger?: boolean;
@@ -70,9 +71,12 @@ export default function Header({ showSidebarTrigger = false }: HeaderProps) {
           )}
         </NavigationMenu>
         {loggedIn && (
-          <Button variant="destructive" onClick={() => logout()}>
-            Sign out
-          </Button>
+          <>
+            <SettingsDialog />
+            <Button variant="destructive" onClick={() => logout()}>
+              Sign out
+            </Button>
+          </>
         )}
         <ModeToggle />
       </div>
