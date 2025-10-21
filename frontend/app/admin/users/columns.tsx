@@ -68,7 +68,7 @@ export const columns = (
           className="has-[>svg]:px-0"
           onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
         >
-          Is Active
+          Active
           <ArrowUpDown className="ml-2 h-4 w-4" />
         </Button>
       );
@@ -87,7 +87,7 @@ export const columns = (
           className="has-[>svg]:px-0"
           onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
         >
-          Is Trusted
+          Trusted
           <ArrowUpDown className="ml-2 h-4 w-4" />
         </Button>
       );
@@ -106,7 +106,7 @@ export const columns = (
           className="has-[>svg]:px-0"
           onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
         >
-          Is Restricted
+          Restricted
           <ArrowUpDown className="ml-2 h-4 w-4" />
         </Button>
       );
@@ -125,7 +125,7 @@ export const columns = (
           className="has-[>svg]:px-0"
           onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
         >
-          Is Admin
+          Admin
           <ArrowUpDown className="ml-2 h-4 w-4" />
         </Button>
       );
