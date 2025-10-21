@@ -13,7 +13,6 @@ import (
 	"github.com/sumup/sumup-go/client"
 	"github.com/sumup/sumup-go/merchant"
 	"github.com/sumup/sumup-go/readers"
-	"gorm.io/gorm"
 )
 
 var (
@@ -42,16 +41,27 @@ func InitAPIReaders() {
 	}
 
 	var r []sumupmodels.Reader
-	models.DB.Session(&gorm.Session{AllowGlobalUpdate: true}).Delete(&r)
 
-	// lookup if readers are in db by reader id, create only non-added ones.
+	var rIds []string
+	for _, v := range response.Items {
+		rIds = append(rIds, string(v.Id))
+	}
+
+	// do not delete and only update existing readers that are still in api response,
+	// delete the readers not in api response. add the new ones.
+	deletedReadersCount := models.DB.Not("reader_id IN (?)", rIds).Delete(&r).RowsAffected
+	if deletedReadersCount > 0 {
+		fmt.Printf("[INFO] SumUp API: Deleted %d reader(s).\n", deletedReadersCount)
+	}
+
 	readersCount := 0
 	for _, v := range response.Items {
 		apiReader := sumupmodels.Reader{ReaderId: sumupmodels.ReaderId(v.Id), Name: sumupmodels.ReaderName(v.Name), Status: sumupmodels.ReaderStatus(v.Status), Device: sumupmodels.ReaderDevice{Identifier: v.Device.Identifier, Model: sumupmodels.ReaderDeviceModel(v.Device.Model)}, CreatedAt: v.CreatedAt, UpdatedAt: v.UpdatedAt}
-		models.DB.Create(&apiReader)
+		models.DB.Where("reader_id = ?", v.Id).Save(&apiReader)
 		readersCount++
 	}
-	fmt.Printf("[INFO] SumUp API: Initialized %d reader(s).\n", readersCount)
+
+	fmt.Printf("[INFO] SumUp API: Initialized %d linked reader(s).\n", readersCount)
 }
 
 func StartReaderCheckout(ReaderId string, TotalAmount uint, Description *string) (ClientTransactionId string, Error error) {
