@@ -23,6 +23,7 @@ import {
   XIcon,
   BeakerIcon,
   ShieldIcon,
+  TrashIcon,
 } from "lucide-react";
 import { config } from "@/lib/config";
 import { Item } from "@/types/item";
@@ -50,6 +51,7 @@ export default function ItemDialog({
   >([{ name: "", value: "" }]);
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState("");
+  const [showDeleteDialog, setShowDeleteDialog] = React.useState(false);
 
   const isEditMode = !!item?.id;
 
@@ -182,6 +184,38 @@ export default function ItemDialog({
       setNutritionInfo([{ name: "", value: "" }]);
     } catch (err) {
       console.error("Item operation error:", err);
+      setError(
+        err instanceof Error
+          ? err.message
+          : "An error occurred. Please try again."
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!item?.id) return;
+
+    setLoading(true);
+    setError("");
+
+    try {
+      const res = await fetch(`${config.apiBaseUrl}/api/v1/items/${item.id}`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || "Failed to delete item");
+      }
+
+      onSuccess?.();
+      setOpen(false);
+      setShowDeleteDialog(false);
+    } catch (err) {
+      console.error("Item delete error:", err);
       setError(
         err instanceof Error
           ? err.message
@@ -426,22 +460,65 @@ export default function ItemDialog({
             </div>
           </div>
           {error && <div className="text-red-500 text-sm mb-2">{error}</div>}
+          <DialogFooter className="sm:justify-between">
+            {isEditMode && (
+              <Button
+                type="button"
+                variant="destructive"
+                onClick={() => setShowDeleteDialog(true)}
+                disabled={loading}
+                className="sm:mr-auto"
+              >
+                <TrashIcon className="h-4 w-4 mr-2" />
+                Delete
+              </Button>
+            )}
+            <div className="flex gap-2 sm:ml-auto">
+              <DialogClose asChild>
+                <Button type="button" variant="outline" disabled={loading}>
+                  Cancel
+                </Button>
+              </DialogClose>
+              <Button type="submit" disabled={loading}>
+                {loading
+                  ? "Saving..."
+                  : isEditMode
+                  ? "Update Item"
+                  : "Create Item"}
+              </Button>
+            </div>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Delete Item</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete this item? This action cannot be
+              undone.
+            </DialogDescription>
+          </DialogHeader>
+          {error && <div className="text-red-500 text-sm mb-2">{error}</div>}
           <DialogFooter>
             <DialogClose asChild>
               <Button type="button" variant="outline" disabled={loading}>
                 Cancel
               </Button>
             </DialogClose>
-            <Button type="submit" disabled={loading}>
-              {loading
-                ? "Saving..."
-                : isEditMode
-                ? "Update Item"
-                : "Create Item"}
+            <Button
+              type="button"
+              variant="destructive"
+              onClick={handleDelete}
+              disabled={loading}
+            >
+              {loading ? "Deleting..." : "Delete"}
             </Button>
           </DialogFooter>
-        </form>
-      </DialogContent>
+        </DialogContent>
+      </Dialog>
     </Dialog>
   );
 }
