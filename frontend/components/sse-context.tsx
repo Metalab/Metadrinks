@@ -25,7 +25,7 @@ interface SSENotificationTransactionUpdatePayload {
 }
 
 interface SSENotificationContentUpdatePayload {
-  type: "users" | "items";
+  type: "users" | "items" | "settings";
 }
 
 interface SSEContextType {
@@ -84,10 +84,24 @@ export const SSEProvider = ({ children }: { children: React.ReactNode }) => {
         try {
           const data = JSON.parse(event.data);
           console.log("SSE event received:", data);
+
+          const eventType = data.type || "message";
+          const eventData = data.data || data;
+
           setLastEvent({
-            type: data.type || "message",
-            data: data.data || data,
+            type: eventType,
+            data: eventData,
           });
+
+          // Handle different event types and dispatch custom events
+          if (eventType === "content_update") {
+            console.log("Content update received:", data);
+            if (eventData.content_payload?.type === "settings") {
+              window.dispatchEvent(new CustomEvent("sse:settings"));
+            }
+          } else if (eventType === "transaction_update") {
+            console.log("Transaction update received:", data);
+          }
         } catch (error) {
           console.error("Failed to parse SSE event data:", error);
           setLastEvent({
@@ -108,32 +122,6 @@ export const SSEProvider = ({ children }: { children: React.ReactNode }) => {
           connect();
         }, reconnectDelay);
       };
-
-      eventSource.addEventListener("transaction_update", (event) => {
-        try {
-          const data = JSON.parse(event.data);
-          console.log("Transaction update received:", data);
-          setLastEvent({
-            type: "transaction_update",
-            data,
-          });
-        } catch (error) {
-          console.error("Failed to parse transaction update:", error);
-        }
-      });
-
-      eventSource.addEventListener("content_update", (event) => {
-        try {
-          const data = JSON.parse(event.data);
-          console.log("Content update received:", data);
-          setLastEvent({
-            type: "content_update",
-            data,
-          });
-        } catch (error) {
-          console.error("Failed to parse content update:", error);
-        }
-      });
     } catch (error) {
       console.error("Failed to create SSE connection:", error);
       setConnectionStatus("error");
