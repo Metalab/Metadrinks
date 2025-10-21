@@ -20,8 +20,8 @@ func FindSettings(c *gin.Context) {
 }
 
 type UpdateSettingsInput struct {
-	MaintenanceMode *bool  `json:"maintenance,omitempty"`
-	DefaultReaderId string `json:"default_reader_id,omitempty"`
+	MaintenanceMode *bool   `json:"maintenance,omitempty"`
+	DefaultReaderId *string `json:"default_reader_id,omitempty"`
 }
 
 func UpdateSettings(c *gin.Context) {
