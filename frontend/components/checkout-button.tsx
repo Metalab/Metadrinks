@@ -9,11 +9,18 @@ import {
 import { PaymentDialog } from "./payment-dialog";
 import { useSelectedItems } from "./selected-items-context";
 import { useUser } from "./user-context";
+import { useSettings } from "./settings-context";
 import React from "react";
 
 export default function CheckoutButton() {
-  const { clearItems } = useSelectedItems();
+  const { clearItems, totalInCents } = useSelectedItems();
   const { user } = useUser();
+  const { settings } = useSettings();
+
+  const isCardAvailable = !!settings?.default_reader_id;
+  const hasEnoughBalance = (user?.balance ?? 0) >= totalInCents;
+  const isBalanceAvailable =
+    !user?.is_restricted && (user?.is_trusted || hasEnoughBalance);
 
   async function handleComplete(result: { method: string; data?: unknown }) {
     clearItems();
@@ -66,6 +73,7 @@ export default function CheckoutButton() {
                   <Button
                     className="w-full items-center justify-center"
                     variant="outline"
+                    disabled={!isCardAvailable}
                   >
                     Card
                   </Button>
@@ -78,7 +86,7 @@ export default function CheckoutButton() {
                   <Button
                     className="w-full items-center justify-center"
                     variant="outline"
-                    disabled={user?.is_restricted ?? true}
+                    disabled={!isBalanceAvailable}
                   >
                     Balance
                   </Button>
