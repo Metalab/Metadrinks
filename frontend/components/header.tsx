@@ -48,6 +48,11 @@ export default function Header({ showSidebarTrigger = false }: HeaderProps) {
                   <Link href="/admin/purchases">Purchases</Link>
                 </NavigationMenuLink>
               </NavigationMenuItem>
+              <NavigationMenuItem>
+                <NavigationMenuLink asChild>
+                  <Link href="/admin/readers">Readers</Link>
+                </NavigationMenuLink>
+              </NavigationMenuItem>
             </NavigationMenuList>
           ) : (
             <NavigationMenuList>
