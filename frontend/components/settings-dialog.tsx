@@ -155,9 +155,9 @@ export default function SettingsDialog() {
 
           {isAdmin && (
             <>
-              <Separator />
+              <Separator className="my-4" />
               <div className="space-y-4">
-                <div className="flex items-center gap-2">
+                <div className="flex items-center">
                   <Construction className="h-4 w-4 text-orange-500" />
                   <h3 className="text-sm font-semibold">Admin Settings</h3>
                 </div>

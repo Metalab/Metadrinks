@@ -11,6 +11,11 @@ export function useLogin() {
   const { login } = useAuth();
   
   const handleLogin = async (username: string, userId: string) => {
+    // prevent double logins when loading
+    if (loading[userId]) {
+      return;
+    }
+    
     if (userId) {
       setLoading((prev) => ({ ...prev, [userId]: true }));
     }
