@@ -41,7 +41,7 @@ func ConnectDatabase() {
 	}
 
 	if database.Where("id = ?", 1).Find(&Settings{}).RowsAffected == 0 {
-		database.Create(&Settings{ID: 1, MaintenanceMode: BoolPointer(false)})
+		database.Create(&Settings{ID: 1, MaintenanceMode: BoolPointer(false), MerchantInfo: nil})
 		fmt.Println("[INFO] Created default settings")
 	}
 

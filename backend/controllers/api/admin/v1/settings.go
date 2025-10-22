@@ -10,12 +10,25 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+func FindAdminSettings(c *gin.Context) {
+	var settings models.Settings
+
+	if err := models.DB.Where("id = ?", 1).First(&settings).Error; err != nil {
+		c.AbortWithStatus(http.StatusNotFound)
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"data": settings})
+}
+
 func FindSettings(c *gin.Context) {
 	var settings models.Settings
 	if err := models.DB.Where("id = ?", 1).First(&settings).Error; err != nil {
 		c.AbortWithStatus(http.StatusNotFound)
 		return
 	}
+
+	settings.MerchantInfo = nil // remove merchant info from normal response
 	c.JSON(http.StatusOK, gin.H{"data": settings})
 }
 

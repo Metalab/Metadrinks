@@ -22,14 +22,24 @@ var (
 
 func Login(apiKey string) {
 	SumupClient = sumup.NewClient(client.WithAPIKey(apiKey))
+	var settings models.Settings
+
+	if err := models.DB.Where("id = ?", 1).First(&settings).Error; err != nil {
+		panic(err.Error())
+	}
 
 	account, err := SumupClient.Merchant.Get(context.Background(), merchant.GetAccountParams{})
 	if err != nil {
 		fmt.Printf("[ERROR] SumUp API: Error getting merchant account: %s\n", err.Error())
+		updatedSettings := models.Settings{MaintenanceMode: settings.MaintenanceMode, DefaultReaderId: settings.DefaultReaderId, MerchantInfo: nil}
+		models.DB.Model(&settings).Updates(&updatedSettings)
 		return
 	}
 
+	formattedDbString := fmt.Sprintf("%s (%s)", *account.MerchantProfile.CompanyName, *account.MerchantProfile.MerchantCode)
 	fmt.Printf("[INFO] SumUp API: Authorized for merchant %q (%s)\n\n", *account.MerchantProfile.MerchantCode, *account.MerchantProfile.CompanyName)
+	updatedSettings := models.Settings{MaintenanceMode: settings.MaintenanceMode, DefaultReaderId: settings.DefaultReaderId, MerchantInfo: &formattedDbString}
+	models.DB.Model(&settings).Updates(&updatedSettings)
 	SumupAccount = account
 }
 

@@ -13,4 +13,5 @@ func RegisterRoutesV1(r *gin.RouterGroup) {
 
 	s := r.Group("settings")
 	s.POST("", auth.JWTAuthMiddleware.MiddlewareFunc(), auth.IsUserAdmin(), UpdateSettings)
+	s.GET("", auth.JWTAuthMiddleware.MiddlewareFunc(), auth.IsUserAdmin(), FindAdminSettings)
 }
