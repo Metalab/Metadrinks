@@ -1,0 +1,33 @@
+services:
+  database:
+    image: "postgres:latest"
+    ports:
+      - 5432:5432
+    env_file:
+      - .env.backend
+    environment:
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_DATABASE}
+    volumes:
+      - db-data:/var/lib/postgresql/data/
+  backend:
+    image: "ghcr.io/metalab/metadrinks:backend-latest" #can also be used with backend-<tag> or backend-pr-<number>
+    ports:
+      - 8080:8080
+    env_file:
+      - .env.backend
+    depends_on:
+      - database
+
+  frontend:
+    image: "ghcr.io/metalab/metadrinks:frontend-latest" #can also be used with frontend-<tag> or frontend-pr-<number>
+    ports:
+      - 3000:3000
+    env_file:
+      - .env.frontend
+    depends_on:
+      - backend
+
+volumes:
+  db-data:
