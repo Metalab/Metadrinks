@@ -61,23 +61,6 @@ func CreateReader(c *gin.Context) {
 
 		models.DB.Create(&dbReader)
 
-		notification := SSENotification{
-			NotificationType: SSENotificationType(SSENotificationContentUpdate),
-			NotificationData: SSENotificationPayload{
-				ContentPayload: &SSENotificationContentUpdatePayload{
-					Type: "settings",
-				},
-			},
-		}
-
-		notificationJSON, err := json.Marshal(notification)
-		if err != nil {
-			fmt.Printf("error marshalling notification: %s\n", err.Error())
-			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "failed to process notification"})
-			return
-		}
-
-		Stream.SendMessage(string(notificationJSON))
 		c.JSON(http.StatusOK, gin.H{"data": dbReader})
 	}
 }
@@ -322,26 +305,27 @@ func DeleteReader(c *gin.Context) {
 	if settings.DefaultReaderId != nil && *settings.DefaultReaderId == string(reader.ReaderId) {
 		updatedSettings := models.Settings{MaintenanceMode: settings.MaintenanceMode, DefaultReaderId: nil}
 		models.DB.Model(&settings).Updates(&updatedSettings)
+
+		notification := SSENotification{
+			NotificationType: SSENotificationType(SSENotificationContentUpdate),
+			NotificationData: SSENotificationPayload{
+				ContentPayload: &SSENotificationContentUpdatePayload{
+					Type: "settings",
+				},
+			},
+		}
+
+		notificationJSON, err := json.Marshal(notification)
+		if err != nil {
+			fmt.Printf("error marshalling notification: %s\n", err.Error())
+			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "failed to process notification"})
+			return
+		}
+
+		Stream.SendMessage(string(notificationJSON))
 	}
 	models.DB.Where("reader_id = ?", reader.ReaderId).Delete(&reader)
 
-	notification := SSENotification{
-		NotificationType: SSENotificationType(SSENotificationContentUpdate),
-		NotificationData: SSENotificationPayload{
-			ContentPayload: &SSENotificationContentUpdatePayload{
-				Type: "settings",
-			},
-		},
-	}
-
-	notificationJSON, err := json.Marshal(notification)
-	if err != nil {
-		fmt.Printf("error marshalling notification: %s\n", err.Error())
-		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "failed to process notification"})
-		return
-	}
-
-	Stream.SendMessage(string(notificationJSON))
 	c.JSON(http.StatusOK, gin.H{"data": "success"})
 }
 
