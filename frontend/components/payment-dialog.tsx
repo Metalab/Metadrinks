@@ -18,6 +18,7 @@ import { useUser } from "./user-context";
 import { useSSE } from "./sse-context";
 import { useAuth } from "./auth-context";
 import { config } from "@/lib/config";
+import { useSettings } from "./settings-context";
 
 type KnownMethod = "cash" | "card" | "balance";
 
@@ -193,6 +194,7 @@ function CashForm({ onComplete }: PaymentFormProps) {
 
 function CardForm({ onComplete }: PaymentFormProps) {
   const { selectedItems } = useSelectedItems();
+  const { settings } = useSettings();
   const { isConnected, lastEvent } = useSSE();
   const [isProcessing, setIsProcessing] = useState(false);
   const [clientTransactionId, setClientTransactionId] = useState<string | null>(
@@ -210,6 +212,14 @@ function CardForm({ onComplete }: PaymentFormProps) {
       }
     }
   );
+
+  const defaultReaderId = settings?.default_reader_id;
+
+  useEffect(() => {
+    if (!defaultReaderId) {
+      setError("No card reader configured. Please contact an administrator.");
+    }
+  }, [defaultReaderId]);
 
   useEffect(() => {
     if (lastEvent?.type === "transaction_update" && clientTransactionId) {
@@ -235,6 +245,11 @@ function CardForm({ onComplete }: PaymentFormProps) {
   }, [lastEvent, clientTransactionId, setIsCompleted]);
 
   const startPayment = async () => {
+    if (!defaultReaderId) {
+      setError("No card reader configured. Please contact an administrator.");
+      return;
+    }
+
     if (!isConnected) {
       setError("Payment system not connected. Please try again.");
       return;
@@ -246,7 +261,7 @@ function CardForm({ onComplete }: PaymentFormProps) {
 
     try {
       const purchaseData = createPurchasePayload(selectedItems, "card", {
-        reader_id: "rdr_2G7JVXPAV5906VAC4W9ZBDJ8F6",
+        reader_id: defaultReaderId || null,
       });
 
       const response = await fetch(`${config.apiBaseUrl}/api/v1/purchases`, {
@@ -356,12 +371,12 @@ function CardForm({ onComplete }: PaymentFormProps) {
         </DialogClose>
 
         {!isProcessing && status === "idle" && (
-          <Button type="submit" disabled={!isConnected}>
+          <Button type="submit" disabled={!isConnected || !defaultReaderId}>
             Start Payment
           </Button>
         )}
 
-        {error && (
+        {error && defaultReaderId && (
           <Button
             onClick={() => {
               setError(null);
@@ -481,6 +496,7 @@ export function PaymentDialog({
   trigger,
   onComplete,
 }: PaymentDialogProps) {
+  const { settings } = useSettings();
   const [selected, setSelected] = useState<KnownMethod | undefined>(
     (method as KnownMethod) ?? undefined
   );
@@ -498,6 +514,8 @@ export function PaymentDialog({
     setSelected(m);
   }, [method]);
 
+  const isCardAvailable = !!settings?.default_reader_id;
+
   return (
     <Dialog>
       {trigger ? <DialogTrigger asChild>{trigger}</DialogTrigger> : null}
@@ -513,9 +531,25 @@ export function PaymentDialog({
             </DialogHeader>
             <div className="grid gap-3 py-4">
               <Button onClick={() => setSelected("cash")}>Cash</Button>
-              <Button onClick={() => setSelected("card")}>Card</Button>
+              <Button
+                onClick={() => setSelected("card")}
+                disabled={!isCardAvailable}
+              >
+                Card
+                {!isCardAvailable && (
+                  <span className="ml-2 text-xs opacity-70">
+                    (No reader configured)
+                  </span>
+                )}
+              </Button>
               <Button onClick={() => setSelected("balance")}>Balance</Button>
             </div>
+            {!isCardAvailable && (
+              <div className="text-sm text-muted-foreground text-center px-4 pb-2">
+                Card payments are unavailable. Please configure a default card
+                reader in the admin settings.
+              </div>
+            )}
             <DialogFooter>
               <DialogClose asChild>
                 <Button variant="outline">Close</Button>
