@@ -65,6 +65,12 @@ export default function PasswordDialog({
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
+
+    // Prevent double submission
+    if (loading) {
+      return;
+    }
+
     setLoading(true);
     setError("");
     try {

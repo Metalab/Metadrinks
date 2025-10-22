@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Button } from "./ui/button";
 import { Card, CardHeader, CardTitle, CardDescription } from "./ui/card";
 import PasswordDialog from "./password-dialog";
@@ -20,15 +20,19 @@ export default function UserCards({ search = "" }: { search?: string }) {
   const [users, setUsers] = useState<User[]>([]);
   const { loading, dialogOpen, setDialogOpen, dialogUsername, handleLogin } =
     useLogin();
+  const hasFetchedRef = useRef(false);
 
   useEffect(() => {
-    fetch(`${config.apiBaseUrl}/api/v1/users`)
-      .then((res) => res.json())
-      .then((data) => {
-        let users: User[] = Array.isArray(data) ? data : data.data || [];
-        users = users.filter((user) => user.name !== "Guest");
-        setUsers(users);
-      });
+    if (!hasFetchedRef.current) {
+      hasFetchedRef.current = true;
+      fetch(`${config.apiBaseUrl}/api/v1/users`)
+        .then((res) => res.json())
+        .then((data) => {
+          let users: User[] = Array.isArray(data) ? data : data.data || [];
+          users = users.filter((user) => user.name !== "Guest");
+          setUsers(users);
+        });
+    }
   }, []);
 
   const onUserClick = (user: User) => {

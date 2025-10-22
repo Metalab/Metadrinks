@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import ItemCards from "@/components/item-cards";
 import { BarcodeSearchInput } from "@/components/search-barcode-input";
 import { useSelectedItems } from "@/components/selected-items-context";
@@ -12,6 +12,7 @@ export default function ItemsPage() {
   const [items, setItems] = useState<Item[]>([]);
   const [loading, setLoading] = useState(true);
   const { addItem } = useSelectedItems();
+  const hasFetchedRef = useRef(false);
 
   const fetchItems = useCallback(() => {
     fetch(`${config.apiBaseUrl}/api/v1/items`)
@@ -28,7 +29,10 @@ export default function ItemsPage() {
   }, []);
 
   useEffect(() => {
-    fetchItems();
+    if (!hasFetchedRef.current) {
+      hasFetchedRef.current = true;
+      fetchItems();
+    }
   }, [fetchItems]);
 
   useContentUpdates(

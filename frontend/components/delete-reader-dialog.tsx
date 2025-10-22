@@ -1,6 +1,6 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
+import { useState } from "react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -10,10 +10,9 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { Trash2 } from "lucide-react";
 import { Reader } from "@/types/reader";
+import { Spinner } from "./ui/spinner";
 
 interface DeleteReaderDialogProps {
   reader: Reader;
@@ -30,9 +29,18 @@ export function DeleteReaderDialog({
   setOpen,
   onDelete,
 }: DeleteReaderDialogProps) {
+  const [isDeleting, setIsDeleting] = useState(false);
+
   const handleDelete = async () => {
-    await onDelete(reader.id);
-    setOpen?.(false);
+    if (isDeleting) return;
+
+    setIsDeleting(true);
+    try {
+      await onDelete(reader.id);
+      setOpen?.(false);
+    } finally {
+      setIsDeleting(false);
+    }
   };
 
   return (
@@ -53,15 +61,17 @@ export function DeleteReaderDialog({
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel>Cancel</AlertDialogCancel>
+          <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
           <AlertDialogAction
             onClick={(e) => {
               e.preventDefault();
               handleDelete();
             }}
+            disabled={isDeleting}
             className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
           >
-            Delete
+            {isDeleting && <Spinner />}
+            {isDeleting ? "Deleting..." : "Delete"}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
