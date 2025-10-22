@@ -2,7 +2,7 @@
 
 import { useAuth } from "@/components/auth-context";
 import { useUser } from "@/components/user-context";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { config } from "@/lib/config";
 import { useContentUpdates } from "@/hooks/use-sse-events";
@@ -27,6 +27,7 @@ export default function AdminReadersPage() {
   const [linkDialogOpen, setLinkDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [readerToDelete, setReaderToDelete] = useState<Reader | null>(null);
+  const hasFetchedRef = useRef(false);
 
   useEffect(() => {
     if (!loggedIn) {
@@ -40,7 +41,10 @@ export default function AdminReadersPage() {
   }, [loggedIn, user, router]);
 
   useEffect(() => {
-    fetchReaders();
+    if (!hasFetchedRef.current) {
+      hasFetchedRef.current = true;
+      fetchReaders();
+    }
   }, []);
 
   useContentUpdates((data) => {
@@ -176,7 +180,9 @@ export default function AdminReadersPage() {
           <div>
             <h1 className="text-2xl font-bold">Card Readers</h1>
             <p className="text-sm text-muted-foreground mt-1">
-              Manage linked card readers for payment processing
+              Manage linked card readers for payment processing.
+              <br />
+              SumUp Merchant: {settings?.merchant_info || "none"}
             </p>
           </div>
           <Button onClick={() => setLinkDialogOpen(true)}>
