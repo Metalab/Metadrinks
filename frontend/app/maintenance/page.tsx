@@ -15,8 +15,8 @@ export default function MaintenancePage() {
             Under Maintenance
           </h1>
           <p className="pt-2 text-lg text-gray-600 dark:text-gray-400">
-            We're currently performing scheduled maintenance to improve your
-            experience.
+            We&apos;re currently performing scheduled maintenance to improve
+            your experience.
           </p>
         </div>
 

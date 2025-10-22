@@ -6,6 +6,7 @@ import React, {
   useState,
   useEffect,
   useRef,
+  useCallback,
 } from "react";
 import { env } from "next-runtime-env";
 import { config } from "@/lib/config";
@@ -33,7 +34,7 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
   const hasFetchedRef = useRef(false);
   const lastAdminStatusRef = useRef<boolean | undefined>(undefined);
 
-  const fetchSettings = async () => {
+  const fetchSettings = useCallback(async () => {
     try {
       const endpoint = user?.is_admin
         ? `${config.apiBaseUrl}/api/admin/v1/settings`
@@ -61,7 +62,7 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [user?.is_admin]);
 
   useEffect(() => {
     const isAdmin = user?.is_admin;
@@ -74,7 +75,7 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
       lastAdminStatusRef.current = isAdmin;
       fetchSettings();
     }
-  }, [user?.is_admin]);
+  }, [user?.is_admin, fetchSettings]);
 
   useEffect(() => {
     const handleSettingsUpdate = async () => {
