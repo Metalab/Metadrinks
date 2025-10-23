@@ -7,14 +7,7 @@ import PasswordDialog from "./password-dialog";
 import { config } from "@/lib/config";
 import { useLogin } from "@/hooks/use-login";
 import { Spinner } from "./ui/spinner";
-
-type User = {
-  id: string; //uuid
-  name: string;
-  image: string;
-  balance: number;
-  is_active: boolean;
-};
+import { User } from "./user-context";
 
 export default function UserCards({ search = "" }: { search?: string }) {
   const [users, setUsers] = useState<User[]>([]);

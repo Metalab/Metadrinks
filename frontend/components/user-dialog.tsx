@@ -16,8 +16,6 @@ import { toast } from "sonner";
 import { Dispatch, SetStateAction } from "react";
 import { useRouter } from "next/navigation";
 import { config } from "@/lib/config";
-import { useLogin } from "@/hooks/use-login";
-import PasswordDialog from "./password-dialog";
 
 interface UserDialogProps {
   open: boolean;
@@ -33,7 +31,6 @@ export function UserDialog({
   onUserCreated,
 }: UserDialogProps) {
   const router = useRouter();
-  const { dialogOpen, setDialogOpen, dialogUsername } = useLogin();
 
   const handleSubmit = async () => {
     const nameInput = document.getElementById("name") as HTMLInputElement;
@@ -118,13 +115,6 @@ export function UserDialog({
           </DialogFooter>
         </DialogContent>
       </Dialog>
-      <PasswordDialog
-        open={dialogOpen}
-        setOpen={setDialogOpen}
-        username={dialogUsername}
-        description="Enter your PIN to log in."
-        passwordInputMode="numeric"
-      />
     </>
   );
 }
