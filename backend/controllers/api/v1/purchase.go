@@ -73,6 +73,11 @@ func CreatePurchase(c *gin.Context) {
 		return
 	}
 
+	if input.Amount != 0 && input.PaymentType == models.PaymentTypeBalance {
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"message": "balance payment type cannot be used with amount"})
+		return
+	}
+
 	if input.Amount != 0 && userClaims["restricted"].(bool) {
 		c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"message": "User is restricted"})
 		return
@@ -92,6 +97,10 @@ func CreatePurchase(c *gin.Context) {
 	finalTransactionDescription := strings.Join(transactionDescription[:], ", ")
 	switch input.PaymentType {
 	case models.PaymentTypeCard:
+		if finalCost == 0 && input.Amount != 0 {
+			finalCost = input.Amount
+			finalTransactionDescription = fmt.Sprintf("Balance top-up of €%d", input.Amount)
+		}
 		var err error
 		transactionStatus = sumupmodels.TransactionFullStatusPending
 		clientTransactionId, err = libs.StartReaderCheckout(input.ReaderId, finalCost, &finalTransactionDescription)
@@ -101,9 +110,12 @@ func CreatePurchase(c *gin.Context) {
 			return
 		}
 	case models.PaymentTypeCash:
+		if input.Amount != 0 {
+			libs.UpdateUserBalance(userId, int(input.Amount))
+		}
 		transactionStatus = sumupmodels.TransactionFullStatusSuccessful
 	case models.PaymentTypeBalance:
-		if balance, err := GetUserBalance(userId); err == nil {
+		if balance, err := libs.GetUserBalance(userId); err == nil {
 			if finalCost >= math.MaxInt32 {
 				c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"message": "Final cost exceeds maximum allowed value"})
 				return
@@ -113,7 +125,7 @@ func CreatePurchase(c *gin.Context) {
 				return
 			} else {
 				transactionStatus = sumupmodels.TransactionFullStatusSuccessful
-				UpdateUserBalance(userId, -int(finalCost))
+				libs.UpdateUserBalance(userId, -int(finalCost))
 			}
 		} else if err.Error() == "user is restricted" {
 			c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"message": "User is restricted"})
@@ -126,9 +138,6 @@ func CreatePurchase(c *gin.Context) {
 
 	purchase := models.Purchase{Items: returnedItemsArray, PaymentType: input.PaymentType, ClientTransactionId: clientTransactionId, TransactionStatus: transactionStatus, FinalCost: finalCost, RefundAmount: input.Amount, CreatedBy: userId}
 	models.DB.Create(&purchase)
-	if input.Amount != 0 {
-		UpdateUserBalance(userId, int(input.Amount))
-	}
 
 	c.JSON(http.StatusOK, gin.H{"data": purchase})
 }
