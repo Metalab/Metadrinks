@@ -1,6 +1,7 @@
 package models
 
 import (
+	"crypto/rand"
 	"fmt"
 	"metalab/metadrinks/libs/crypto"
 	"os"
@@ -29,15 +30,25 @@ func ConnectDatabase() {
 	database.AutoMigrate(&Settings{})
 	database.AutoMigrate(&models.Reader{})
 
-	hashedPassword, err := crypto.HashPasswordSecure("") //bcrypt.GenerateFromPassword([]byte(""), bcrypt.DefaultCost)
-	if err != nil {
-		fmt.Println("Error generating password hash: ", err)
-		return
+	if database.Limit(1).Find(&User{Name: "guest"}).RowsAffected == 0 {
+		hashedPassword, err := crypto.HashPasswordSecure("")
+		if err != nil {
+			fmt.Println("Error generating guest password hash: ", err)
+			return
+		}
+		database.Create(&User{UserID: uuid.Nil, Name: "Guest", Password: hashedPassword, IsAdmin: BoolPointer(false), IsTrusted: BoolPointer(false), IsRestricted: BoolPointer(true), UsedAt: time.Now().Local()})
+		fmt.Println("[INFO] Created guest user")
 	}
 
-	if database.Limit(1).Find(&User{Name: "guest"}).RowsAffected == 0 {
-		database.Create(&User{UserID: uuid.Nil, Name: "Guest", Password: hashedPassword, IsTrusted: BoolPointer(false), IsRestricted: BoolPointer(true), UsedAt: time.Now().Local()})
-		fmt.Println("[INFO] Created guest user")
+	if database.Where("is_admin = true").Find(&User{}).RowsAffected == 0 {
+		key := rand.Text()
+		hashedPassword, err := crypto.HashPasswordSecure(key)
+		if err != nil {
+			fmt.Println("Error generating admin password hash: ", err)
+			return
+		}
+		database.Create(&User{UserID: uuid.Nil, Name: "a-admin", Password: hashedPassword, IsAdmin: BoolPointer(true), IsTrusted: BoolPointer(false), IsRestricted: BoolPointer(false), UsedAt: time.Now().Local()})
+		fmt.Printf("\n[INFO] Created default admin user with password %s\n", key)
 	}
 
 	if database.Where("id = ?", 1).Find(&Settings{}).RowsAffected == 0 {
@@ -68,7 +79,7 @@ func LoadEnvironmentVariables() error {
 	}
 
 	// Check if any required vars are missing
-	missingVars := []string{}
+	var missingVars []string
 	for _, envVar := range enforcedVars {
 		if os.Getenv(envVar) == "" {
 			missingVars = append(missingVars, envVar)
@@ -84,7 +95,7 @@ func LoadEnvironmentVariables() error {
 	}
 
 	// Verify all required vars are now set
-	stillMissing := []string{}
+	var stillMissing []string
 	for _, envVar := range enforcedVars {
 		if os.Getenv(envVar) == "" {
 			stillMissing = append(stillMissing, envVar)
