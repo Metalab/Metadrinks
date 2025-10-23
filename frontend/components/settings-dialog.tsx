@@ -9,11 +9,9 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import {
-  Settings,
   Construction,
   AlertTriangle,
   Palette,
@@ -35,12 +33,28 @@ import {
 import { config } from "@/lib/config";
 import { toast } from "sonner";
 
-export default function SettingsDialog() {
+interface SettingsDialogProps {
+  trigger?: React.ReactNode;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+}
+
+export default function SettingsDialog({
+  trigger,
+  open: controlledOpen,
+  onOpenChange: controlledOnOpenChange,
+}: SettingsDialogProps = {}) {
   const { user } = useUser();
   const { maintenanceMode, isEnvMaintenance, refreshSettings } = useSettings();
   const { theme, setTheme } = useTheme();
-  const [open, setOpen] = React.useState(false);
+  const [internalOpen, setInternalOpen] = React.useState(false);
   const [updating, setUpdating] = React.useState(false);
+
+  const isControlled = controlledOpen !== undefined;
+  const open = isControlled ? controlledOpen : internalOpen;
+  const setOpen = isControlled
+    ? controlledOnOpenChange || (() => {})
+    : setInternalOpen;
 
   const isAdmin = user?.is_admin;
 
@@ -82,11 +96,7 @@ export default function SettingsDialog() {
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button variant="ghost" size="icon" title="Settings">
-          <Settings className="h-5 w-5" />
-        </Button>
-      </DialogTrigger>
+      {trigger && <DialogTrigger asChild>{trigger}</DialogTrigger>}
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
           <DialogTitle>Settings</DialogTitle>
