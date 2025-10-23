@@ -42,7 +42,7 @@ export default function CheckoutButton() {
     >
       <Popover>
         <PopoverTrigger asChild>
-          <Button className="w-full" size="lg">
+          <Button className="w-full h-15" size="lg">
             Checkout
           </Button>
         </PopoverTrigger>
@@ -59,7 +59,7 @@ export default function CheckoutButton() {
                 method="cash"
                 trigger={
                   <Button
-                    className="w-full items-center justify-center"
+                    className="w-full h-15 items-center justify-center"
                     variant="outline"
                   >
                     Cash
@@ -71,7 +71,7 @@ export default function CheckoutButton() {
                 method="card"
                 trigger={
                   <Button
-                    className="w-full items-center justify-center"
+                    className="w-full h-15 items-center justify-center"
                     variant="outline"
                     disabled={!isCardAvailable}
                   >
@@ -84,7 +84,7 @@ export default function CheckoutButton() {
                 method="balance"
                 trigger={
                   <Button
-                    className="w-full items-center justify-center"
+                    className="w-full h-15 items-center justify-center"
                     variant="outline"
                     disabled={!isBalanceAvailable}
                   >
