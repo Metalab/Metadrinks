@@ -103,6 +103,11 @@ export default function PasswordDialog({
         className="sm:max-w-[425px]"
         onEscapeKeyDown={(e) => disableClose && e.preventDefault()}
         onPointerDownOutside={(e) => disableClose && e.preventDefault()}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") {
+            e.stopPropagation();
+          }
+        }}
         showCloseButton={!disableClose}
       >
         <form onSubmit={handleSubmit}>
