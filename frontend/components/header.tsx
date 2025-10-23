@@ -2,6 +2,7 @@
 
 import { ModeToggle } from "@/components/ui/theme-mode-toggle";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import {
   NavigationMenu,
   NavigationMenuItem,
@@ -14,6 +15,7 @@ import { useSettings } from "@/components/settings-context";
 import { Button } from "@/components/ui/button";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { MoreDropdownMenu } from "./more-dropdown";
+import { cn } from "@/lib/utils";
 
 type HeaderProps = {
   showSidebarTrigger?: boolean;
@@ -23,6 +25,14 @@ export default function Header({ showSidebarTrigger = false }: HeaderProps) {
   const { loggedIn, expiresIn, logout } = useAuth();
   const { user } = useUser();
   const { maintenanceMode } = useSettings();
+  const pathname = usePathname();
+
+  const isActive = (path: string) => {
+    if (path === "/" || path === "/admin") {
+      return pathname === path;
+    }
+    return pathname.startsWith(path);
+  };
 
   return (
     <header className="relative p-4 pb-8">
@@ -37,27 +47,67 @@ export default function Header({ showSidebarTrigger = false }: HeaderProps) {
                 <NavigationMenuList>
                   <NavigationMenuItem>
                     <NavigationMenuLink asChild>
-                      <Link href="/admin">Home</Link>
+                      <Link
+                        href="/admin"
+                        className={cn(
+                          isActive("/admin") &&
+                            "font-semibold underline underline-offset-4"
+                        )}
+                      >
+                        Home
+                      </Link>
                     </NavigationMenuLink>
                   </NavigationMenuItem>
                   <NavigationMenuItem>
                     <NavigationMenuLink asChild>
-                      <Link href="/admin/items">Items</Link>
+                      <Link
+                        href="/admin/items"
+                        className={cn(
+                          isActive("/admin/items") &&
+                            "font-semibold underline underline-offset-4"
+                        )}
+                      >
+                        Items
+                      </Link>
                     </NavigationMenuLink>
                   </NavigationMenuItem>
                   <NavigationMenuItem>
                     <NavigationMenuLink asChild>
-                      <Link href="/admin/users">Users</Link>
+                      <Link
+                        href="/admin/users"
+                        className={cn(
+                          isActive("/admin/users") &&
+                            "font-semibold underline underline-offset-4"
+                        )}
+                      >
+                        Users
+                      </Link>
                     </NavigationMenuLink>
                   </NavigationMenuItem>
                   <NavigationMenuItem>
                     <NavigationMenuLink asChild>
-                      <Link href="/admin/purchases">Purchases</Link>
+                      <Link
+                        href="/admin/purchases"
+                        className={cn(
+                          isActive("/admin/purchases") &&
+                            "font-semibold underline underline-offset-4"
+                        )}
+                      >
+                        Purchases
+                      </Link>
                     </NavigationMenuLink>
                   </NavigationMenuItem>
                   <NavigationMenuItem>
                     <NavigationMenuLink asChild>
-                      <Link href="/admin/readers">Readers</Link>
+                      <Link
+                        href="/admin/readers"
+                        className={cn(
+                          isActive("/admin/readers") &&
+                            "font-semibold underline underline-offset-4"
+                        )}
+                      >
+                        Readers
+                      </Link>
                     </NavigationMenuLink>
                   </NavigationMenuItem>
                 </NavigationMenuList>
@@ -65,12 +115,28 @@ export default function Header({ showSidebarTrigger = false }: HeaderProps) {
                 <NavigationMenuList>
                   <NavigationMenuItem>
                     <NavigationMenuLink asChild>
-                      <Link href="/">Home</Link>
+                      <Link
+                        href="/"
+                        className={cn(
+                          isActive("/") &&
+                            "font-semibold underline underline-offset-4"
+                        )}
+                      >
+                        Home
+                      </Link>
                     </NavigationMenuLink>
                   </NavigationMenuItem>
                   <NavigationMenuItem>
                     <NavigationMenuLink asChild>
-                      <Link href="/items">Items</Link>
+                      <Link
+                        href="/items"
+                        className={cn(
+                          isActive("/items") &&
+                            "font-semibold underline underline-offset-4"
+                        )}
+                      >
+                        Items
+                      </Link>
                     </NavigationMenuLink>
                   </NavigationMenuItem>
                 </NavigationMenuList>
