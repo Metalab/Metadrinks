@@ -25,11 +25,13 @@ type KnownMethod = "cash" | "card" | "balance";
 interface PaymentDialogProps {
   method?: string; // cash/card/balance
   trigger?: React.ReactNode;
+  amountInCents?: number; // custom amount for balance top-up
   onComplete?: (result: { method: string; data?: unknown }) => void;
 }
 
 interface PaymentFormProps {
   onComplete?: (d: unknown) => void;
+  amountInCents?: number; // custom amount for balance top-up
 }
 
 function usePaymentCompletion(
@@ -119,7 +121,7 @@ function createPurchasePayload(
   };
 }
 
-function CashForm({ onComplete }: PaymentFormProps) {
+function CashForm({ onComplete, amountInCents }: PaymentFormProps) {
   const { selectedItems } = useSelectedItems();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [paymentResult, setPaymentResult] = useState<unknown>(null);
@@ -133,10 +135,10 @@ function CashForm({ onComplete }: PaymentFormProps) {
     }
   );
 
-  const totalInCents = selectedItems.reduce(
-    (sum, item) => sum + item.price * item.quantity,
-    0
-  );
+  const isBalanceTopUp = amountInCents !== undefined;
+  const totalInCents = isBalanceTopUp
+    ? amountInCents
+    : selectedItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
   const totalInEuros = (totalInCents / 100).toFixed(2);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -144,7 +146,16 @@ function CashForm({ onComplete }: PaymentFormProps) {
     setIsSubmitting(true);
 
     try {
-      const payload = createPurchasePayload(selectedItems, "cash");
+      let payload;
+      if (isBalanceTopUp) {
+        payload = {
+          amount: amountInCents,
+          payment_type: "cash",
+        };
+      } else {
+        payload = createPurchasePayload(selectedItems, "cash");
+      }
+
       const response = await fetch(`${config.apiBaseUrl}/api/v1/purchases`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -175,7 +186,9 @@ function CashForm({ onComplete }: PaymentFormProps) {
       <DialogHeader>
         <DialogTitle>Cash payment</DialogTitle>
         <DialogDescription>
-          Please put the cash (€{totalInEuros}) into the register.
+          {isBalanceTopUp
+            ? `Please put €${totalInEuros} into the register.`
+            : `Please put the cash (€${totalInEuros}) into the register.`}
         </DialogDescription>
       </DialogHeader>
       <DialogFooter className="pt-4">
@@ -192,7 +205,7 @@ function CashForm({ onComplete }: PaymentFormProps) {
   );
 }
 
-function CardForm({ onComplete }: PaymentFormProps) {
+function CardForm({ onComplete, amountInCents }: PaymentFormProps) {
   const { selectedItems } = useSelectedItems();
   const { settings } = useSettings();
   const { isConnected, lastEvent } = useSSE();
@@ -260,9 +273,20 @@ function CardForm({ onComplete }: PaymentFormProps) {
     setStatus("starting");
 
     try {
-      const purchaseData = createPurchasePayload(selectedItems, "card", {
-        reader_id: defaultReaderId || null,
-      });
+      let purchaseData;
+      const isBalanceTopUp = amountInCents !== undefined;
+
+      if (isBalanceTopUp) {
+        purchaseData = {
+          amount: amountInCents,
+          payment_type: "card",
+          reader_id: defaultReaderId,
+        };
+      } else {
+        purchaseData = createPurchasePayload(selectedItems, "card", {
+          reader_id: defaultReaderId,
+        });
+      }
 
       const response = await fetch(`${config.apiBaseUrl}/api/v1/purchases`, {
         method: "POST",
@@ -292,12 +316,14 @@ function CardForm({ onComplete }: PaymentFormProps) {
 
   const terminatePayment = async () => {
     try {
-      await fetch(`${config.apiBaseUrl}/api/payment/v1/readers/terminate`, {
-        method: "DELETE",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({ name: "drinks" }),
-      });
+      await fetch(
+        `${config.apiBaseUrl}/api/payment/v1/readers/terminate/${defaultReaderId}`,
+        {
+          method: "DELETE",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+        }
+      );
     } catch (err) {
       console.error("Failed to terminate payment:", err);
     }
@@ -494,6 +520,7 @@ function BalanceForm({ onComplete }: PaymentFormProps) {
 export function PaymentDialog({
   method,
   trigger,
+  amountInCents,
   onComplete,
 }: PaymentDialogProps) {
   const { settings } = useSettings();
@@ -515,6 +542,7 @@ export function PaymentDialog({
   }, [method]);
 
   const isCardAvailable = !!settings?.default_reader_id;
+  const isBalanceTopUp = amountInCents !== undefined;
 
   return (
     <Dialog>
@@ -542,7 +570,9 @@ export function PaymentDialog({
                   </span>
                 )}
               </Button>
-              <Button onClick={() => setSelected("balance")}>Balance</Button>
+              {!isBalanceTopUp && (
+                <Button onClick={() => setSelected("balance")}>Balance</Button>
+              )}
             </div>
             {!isCardAvailable && (
               <div className="text-sm text-muted-foreground text-center px-4 pb-2">
@@ -560,11 +590,13 @@ export function PaymentDialog({
           <div>
             {selected === "cash" && (
               <CashForm
+                amountInCents={amountInCents}
                 onComplete={(data) => onComplete?.({ method: "cash", data })}
               />
             )}
             {selected === "card" && (
               <CardForm
+                amountInCents={amountInCents}
                 onComplete={(data) => onComplete?.({ method: "card", data })}
               />
             )}
