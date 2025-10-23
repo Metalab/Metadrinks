@@ -37,7 +37,7 @@ func Login(apiKey string) {
 	}
 
 	formattedDbString := fmt.Sprintf("%s (%s)", *account.MerchantProfile.CompanyName, *account.MerchantProfile.MerchantCode)
-	fmt.Printf("[INFO] SumUp API: Authorized for merchant %q (%s)\n\n", *account.MerchantProfile.MerchantCode, *account.MerchantProfile.CompanyName)
+	fmt.Printf("[INFO] SumUp API: Authorized for merchant %q (%s)\n", *account.MerchantProfile.MerchantCode, *account.MerchantProfile.CompanyName)
 	updatedSettings := models.Settings{MaintenanceMode: settings.MaintenanceMode, DefaultReaderId: settings.DefaultReaderId, MerchantInfo: &formattedDbString}
 	models.DB.Model(&settings).Updates(&updatedSettings)
 	SumupAccount = account

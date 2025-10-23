@@ -238,28 +238,3 @@ func UpdateUser(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{"data": user})
 	}
 */
-
-func GetUserBalance(userId uuid.UUID) (*int, error) {
-	var user models.User
-
-	if err := models.DB.Where("user_id = ?", userId).First(&user).Error; err != nil {
-		return nil, err
-	}
-
-	if *user.IsRestricted {
-		return nil, fmt.Errorf("user is restricted")
-	}
-
-	return &user.Balance, nil
-}
-
-func UpdateUserBalance(userId uuid.UUID, change int) {
-	var user models.User
-
-	if err := models.DB.Where("user_id = ?", userId).First(&user).Error; err != nil {
-		return
-	}
-
-	user.Balance = user.Balance + change
-	models.DB.Save(&user)
-}

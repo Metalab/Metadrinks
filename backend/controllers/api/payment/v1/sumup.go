@@ -4,12 +4,14 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	jwt "metalab/metadrinks/libs/auth"
 	"net/http"
 
 	"metalab/metadrinks/libs"
 	"metalab/metadrinks/models"
 	sumupmodels "metalab/metadrinks/models/sumup"
 
+	"github.com/google/uuid"
 	"github.com/sumup/sumup-go/readers"
 
 	"github.com/gin-gonic/gin"
@@ -151,11 +153,6 @@ func DeleteReaderByName(name string) error {
 	return nil
 }
 
-type TerminateReaderInput struct {
-	ReaderId   string `json:"id"`
-	ReaderName string `json:"name"`
-}
-
 // TerminateReaderCheckout godoc
 //
 //	@Summary		Terminate reader checkout
@@ -166,47 +163,27 @@ type TerminateReaderInput struct {
 //	@Success		200
 //	@Failure		500
 //
-//	@Param			reader	body	TerminateReaderInput	true	"Terminate reader input"
+//	@Param			id	path	string	true	"Reader ID"
 //
-//	@Router			/readers/terminate [delete]
+//	@Router			/readers/terminate/{id} [delete]
 func TerminateReaderCheckout(c *gin.Context) {
-	var input TerminateReaderInput
-	if err := c.ShouldBindJSON(&input); err != nil {
-		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+	var reader sumupmodels.Reader
+	userClaims := jwt.ExtractClaims(c)
+	jwtSubject := userClaims["sub"].(string)
+	userId := uuid.MustParse(userClaims["userId"].(string))
+
+	if err := models.DB.Where("reader_id = ?", c.Param("id")).First(&reader).Error; err != nil {
+		c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"error": err.Error()})
 		return
 	}
 
-	if input.ReaderId == "" && input.ReaderName == "" {
-		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"message": "reader id/name missing"})
-		return
-	} else if input.ReaderId == "" && input.ReaderName != "" { // name defined, id undefined
-		var dbReader *sumupmodels.Reader
-		var findErr error
-		dbReader, findErr = FindReaderByName(input.ReaderName)
-		if findErr != nil {
-			fmt.Printf("error finding reader by name: %s\n", findErr.Error())
-			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": findErr.Error()})
-			return
-		}
-
-		terminateErr := libs.SumupClient.Readers.TerminateCheckout(context.Background(), *libs.SumupAccount.MerchantProfile.MerchantCode, string(dbReader.ReaderId)) // uses reader id from db, retrieved from name
-		if terminateErr != nil {
-			fmt.Printf("error while terminating checkout by name: %s\n", terminateErr.Error())
-			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": terminateErr.Error()})
-			return
-		}
-	} else if input.ReaderId != "" && input.ReaderName == "" { // name undefined, id defined
-		terminateErr := libs.SumupClient.Readers.TerminateCheckout(context.Background(), *libs.SumupAccount.MerchantProfile.MerchantCode, input.ReaderId) // uses reader id from input
-		if terminateErr != nil {
-			fmt.Printf("error while terminating checkout by id: %s\n", terminateErr.Error())
-			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": terminateErr.Error()})
-			return
-		}
-	} else {
-		fmt.Printf("unknown error while terminating checkout\n")
-		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "unknown error while terminating checkout"})
+	terminateErr := libs.SumupClient.Readers.TerminateCheckout(context.Background(), *libs.SumupAccount.MerchantProfile.MerchantCode, string(reader.ReaderId))
+	if terminateErr != nil {
+		fmt.Printf("error while terminating checkout by name: %s\n", terminateErr.Error())
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": terminateErr.Error()})
 		return
 	}
+	fmt.Printf("checkout on reader %s terminated by %s(%s)\n", reader.ReaderId, jwtSubject, userId)
 	c.JSON(http.StatusOK, gin.H{"data": "success"})
 }
 
@@ -345,15 +322,25 @@ func DeleteReader(c *gin.Context) {
 func GetIncomingWebhook(c *gin.Context) {
 	// After receiving a webhook call, your application must always verify if the event really took place, by calling a relevant SumUp's API.
 	var input sumupmodels.ReaderCheckoutStatusChange
+	var purchase models.Purchase
 	if err := c.ShouldBindJSON(&input); err != nil {
 		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	if err := models.DB.Where("client_transaction_id = ?", input.Payload.ClientTransactionId).First(&purchase).Error; err != nil {
+		c.AbortWithStatus(http.StatusNotFound)
 		return
 	}
 
 	insertData := models.Purchase{TransactionStatus: input.Payload.Status}
 	fmt.Printf("incoming sumup webhook: %v", input.Payload)
 
-	models.DB.Where("client_transaction_id = ?", input.Payload.ClientTransactionId).Updates(insertData)
+	if purchase.RefundAmount != 0 && input.Payload.Status == "successful" {
+		libs.UpdateUserBalance(purchase.CreatedBy, int(purchase.RefundAmount))
+	}
+
+	models.DB.Model(&purchase).Updates(insertData)
 
 	notification := SSENotification{
 		NotificationType: SSENotificationType(SSENotificationTransactionUpdate),
