@@ -87,7 +87,7 @@ func CreateItem(c *gin.Context) {
 //	@Router			/items [get]
 func FindItems(c *gin.Context) {
 	var items []models.Item
-	models.DB.Where("is_active = ?", true).Where("deleted_at IS NULL").Find(&items)
+	models.DB.Order("created_at ASC").Where("is_active = ?", true).Where("deleted_at IS NULL").Find(&items)
 
 	c.Header("Content-Type", "application/json")
 	c.JSON(http.StatusOK, gin.H{"data": items})
@@ -110,7 +110,7 @@ func FindItems(c *gin.Context) {
 func FindItem(c *gin.Context) {
 	var item models.Item
 
-	if err := models.DB.Order("created_at ASC").Where("item_id = ?", c.Param("id")).First(&item).Error; err != nil {
+	if err := models.DB.Where("item_id = ?", c.Param("id")).First(&item).Error; err != nil {
 		c.AbortWithStatus(http.StatusNotFound)
 		return
 	}
