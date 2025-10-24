@@ -2,53 +2,14 @@
 This project contains the backend and frontend code for the Metadrinks project.
 
 ## Setting up
-Copy the contents of `.env.example` to `.env` and replace the values accordingly.
+Copy `docker-compose.yml`, `.env.backend.example` and `.env.frontend.example` to your project root directory. Replace the values in the example files accordingly and remove the `.example` suffix.
 
-### docker-compose.yml
-
-```
----
-services:
-  postgres:
-    image: postgres:17-alpine
-    container_name: metadrinks-postgres
-    environment:
-      - TZ=Europe/Vienna
-      - POSTGRES_USER=<DB_USER>
-      - POSTGRES_PASSWORD=<DB_PASSWORD>
-      - POSTGRES_DB=<DB_DATABASE>
-    volumes:
-      - ./pg_data:/var/lib/postgresql/data
-    networks:
-      - backend
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U <DB_USER> -d <DB_DATABASE>"]
-      interval: 1s
-      retries: 10
-      start_period: 10s
-      timeout: 30s
-
-  backend:
-    image: ghcr.io/metalab/Metadrinks-backend:main
-    container_name: metadrinks-backend
-    networks:
-      - backend
-    ports:
-      - 8080:8080
-    depends_on:
-      postgres:
-        condition: service_healthy
-        restart: true
-    restart: unless-stopped
-
-networks:
-  backend:
-```
-
-Using this example, your `DB_HOST` would be `metadrinks-postgres`, your `DB_PORT` would be `5432` and everything else would be what you replace the placeholder values with.
+To start, execute `docker compose up -d`. If required or wanted, you can change the ports (in the format `host-port:container-port`, only change the host-port) or the version to ensure no unwanted upgrades happen.
 
 ## Usage
+On first start, a default guest and admin user are generated. The admin password will be printed to your console ONCE (visible by either running `docker compose up` when starting or `docker compose logs` after start).
+
+After the first start, it is recommended to change the admin password via the admin interface under `/admin`. From this page, all management of items, users, readers and purchases takes place.
 
 ### API Docs
-coming soon (when the api is semi-stable and tested)
+Currently, the API docs are served by the backend under /docs/index.html with the file "../swapper.json".
