@@ -97,6 +97,7 @@ export function AddBalanceDialog({
                 value={amount}
                 onChange={handleAmountChange}
                 className="text-lg"
+                autoFocus={false}
               />
               {amount && isValidAmount && (
                 <p className="text-sm text-muted-foreground">
