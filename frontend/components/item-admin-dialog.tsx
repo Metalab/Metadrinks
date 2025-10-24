@@ -27,6 +27,7 @@ import {
 } from "lucide-react";
 import { config } from "@/lib/config";
 import { Item } from "@/types/item";
+import { isValid } from "gtin";
 
 export default function ItemDialog({
   open,
@@ -46,6 +47,9 @@ export default function ItemDialog({
   const [price, setPrice] = React.useState("");
   const [isActive, setIsActive] = React.useState(true);
   const [barcodes, setBarcodes] = React.useState<string[]>([""]);
+  const [barcodeErrors, setBarcodeErrors] = React.useState<(string | null)[]>([
+    null,
+  ]);
   const [nutritionInfo, setNutritionInfo] = React.useState<
     Array<{ name: string; value: string }>
   >([{ name: "", value: "" }]);
@@ -54,6 +58,28 @@ export default function ItemDialog({
   const [showDeleteDialog, setShowDeleteDialog] = React.useState(false);
 
   const isEditMode = !!item?.id;
+
+  const validateBarcodeChecksum = (barcode: string): string | null => {
+    const cleanBarcode = barcode.trim();
+
+    if (cleanBarcode === "") {
+      return null; // Empty is valid (optional field)
+    }
+
+    if (!/^\d+$/.test(cleanBarcode)) {
+      return "Barcode must contain only digits";
+    }
+
+    if (cleanBarcode.length !== 8 && cleanBarcode.length !== 13) {
+      return "Barcode must be 8 or 13 digits (EAN-8 or EAN-13)";
+    }
+
+    if (!isValid(cleanBarcode)) {
+      return `Invalid checksum`;
+    }
+
+    return null; // Valid
+  };
 
   React.useEffect(() => {
     if (item) {
@@ -65,6 +91,11 @@ export default function ItemDialog({
       setIsActive(item.is_active ?? true);
       setBarcodes(
         item.barcodes && item.barcodes.length > 0 ? item.barcodes : [""]
+      );
+      setBarcodeErrors(
+        item.barcodes && item.barcodes.length > 0
+          ? item.barcodes.map(() => null)
+          : [null]
       );
       setNutritionInfo(
         item.nutrition_info && item.nutrition_info.length > 0
@@ -79,6 +110,7 @@ export default function ItemDialog({
       setPrice("");
       setIsActive(true);
       setBarcodes([""]);
+      setBarcodeErrors([null]);
       setNutritionInfo([{ name: "", value: "" }]);
     }
     setError("");
@@ -86,11 +118,13 @@ export default function ItemDialog({
 
   const handleAddBarcode = () => {
     setBarcodes([...barcodes, ""]);
+    setBarcodeErrors([...barcodeErrors, null]);
   };
 
   const handleRemoveBarcode = (index: number) => {
     if (barcodes.length > 1) {
       setBarcodes(barcodes.filter((_, i) => i !== index));
+      setBarcodeErrors(barcodeErrors.filter((_, i) => i !== index));
     }
   };
 
@@ -98,6 +132,10 @@ export default function ItemDialog({
     const newBarcodes = [...barcodes];
     newBarcodes[index] = value;
     setBarcodes(newBarcodes);
+
+    const newErrors = [...barcodeErrors];
+    newErrors[index] = validateBarcodeChecksum(value);
+    setBarcodeErrors(newErrors);
   };
 
   const handleAddNutrition = () => {
@@ -126,10 +164,19 @@ export default function ItemDialog({
     setError("");
 
     try {
-      // Filter out empty barcodes
       const filteredBarcodes = barcodes
         .map((b) => b.trim())
         .filter((b) => b.length > 0);
+
+      const invalidBarcodes = filteredBarcodes.filter(
+        (barcode) => validateBarcodeChecksum(barcode) !== null
+      );
+
+      if (invalidBarcodes.length > 0) {
+        throw new Error(
+          "Please fix invalid barcodes before submitting. Check the error messages below each barcode field."
+        );
+      }
 
       // Filter out empty nutrition info entries
       const filteredNutritionInfo = nutritionInfo
@@ -181,6 +228,7 @@ export default function ItemDialog({
       setPrice("");
       setIsActive(true);
       setBarcodes([""]);
+      setBarcodeErrors([null]);
       setNutritionInfo([{ name: "", value: "" }]);
     } catch (err) {
       console.error("Item operation error:", err);
@@ -368,33 +416,42 @@ export default function ItemDialog({
                 </Button>
               </div>
               {barcodes.map((barcode, index) => (
-                <div key={index} className="flex gap-2">
-                  <div className="relative flex-1">
-                    <BarcodeIcon className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                    <Input
-                      type="text"
-                      placeholder={`13-digit EAN Barcode`}
-                      value={barcode}
-                      minLength={13}
-                      maxLength={13}
-                      onChange={(e) =>
-                        handleBarcodeChange(index, e.target.value)
-                      }
-                      disabled={loading}
-                      className="pl-10"
-                    />
+                <div key={index} className="flex flex-col gap-2">
+                  <div className="flex gap-2">
+                    <div className="relative flex-1">
+                      <BarcodeIcon className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                      <Input
+                        type="text"
+                        placeholder={`8-13 digit EAN Barcode`}
+                        value={barcode}
+                        minLength={8}
+                        maxLength={13}
+                        onChange={(e) =>
+                          handleBarcodeChange(index, e.target.value)
+                        }
+                        disabled={loading}
+                        className={`pl-10 ${
+                          barcodeErrors[index] ? "border-red-500" : ""
+                        }`}
+                      />
+                    </div>
+                    {barcodes.length > 1 && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleRemoveBarcode(index)}
+                        disabled={loading}
+                        className="flex-shrink-0"
+                      >
+                        <XIcon className="h-4 w-4" />
+                      </Button>
+                    )}
                   </div>
-                  {barcodes.length > 1 && (
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => handleRemoveBarcode(index)}
-                      disabled={loading}
-                      className="flex-shrink-0"
-                    >
-                      <XIcon className="h-4 w-4" />
-                    </Button>
+                  {barcodeErrors[index] && (
+                    <p className="text-xs text-red-500 ml-1">
+                      {barcodeErrors[index]}
+                    </p>
                   )}
                 </div>
               ))}
