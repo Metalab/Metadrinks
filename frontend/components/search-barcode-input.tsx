@@ -4,6 +4,7 @@ import { Input } from "@/components/ui/input";
 import { SearchIcon } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { useAuth } from "./auth-context";
+import { toast } from "sonner";
 
 interface Item {
   id: string;
@@ -75,6 +76,17 @@ export function BarcodeSearchInput({
         clearTimeout(timerRef.current);
         timerRef.current = null;
       }
+    } else {
+      toast.error("Item not found", {
+        description: `No item found with barcode ${barcode}`,
+      });
+
+      setValue("");
+      valueRef.current = "";
+      if (timerRef.current) {
+        clearTimeout(timerRef.current);
+        timerRef.current = null;
+      }
     }
   };
 
@@ -90,6 +102,11 @@ export function BarcodeSearchInput({
             detail: { item: foundItem },
           });
           window.dispatchEvent(event);
+          processedBarcodeRef.current = true;
+        } else {
+          toast.error("Item not found", {
+            description: `No item found with barcode ${pendingBarcode}`,
+          });
           processedBarcodeRef.current = true;
         }
         sessionStorage.removeItem("pendingBarcode");
