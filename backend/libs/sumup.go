@@ -50,8 +50,6 @@ func InitAPIReaders() {
 		return
 	}
 
-	var r []sumupmodels.Reader
-
 	var rIds []string
 	for _, v := range response.Items {
 		rIds = append(rIds, string(v.Id))
@@ -59,7 +57,13 @@ func InitAPIReaders() {
 
 	// do not delete and only update existing readers that are still in api response,
 	// delete the readers not in api response. add the new ones.
-	deletedReadersCount := models.DB.Not("reader_id IN (?)", rIds).Delete(&r).RowsAffected
+	var deletedReadersCount int64
+	if len(rIds) > 0 {
+		deletedReadersCount = models.DB.Where("reader_id NOT IN (?)", rIds).Delete(&sumupmodels.Reader{}).RowsAffected
+	} else {
+		// if no readers in api response, delete all readers
+		deletedReadersCount = models.DB.Delete(&sumupmodels.Reader{}, "1=1").RowsAffected
+	}
 	if deletedReadersCount > 0 {
 		fmt.Printf("[INFO] SumUp API: Deleted %d reader(s).\n", deletedReadersCount)
 	}
@@ -78,7 +82,7 @@ func StartReaderCheckout(ReaderId string, TotalAmount uint, Description *string)
 	returnUrl := os.Getenv("SUMUP_RETURN_URL")
 	response, checkoutErr := SumupClient.Readers.CreateCheckout(context.Background(), *SumupAccount.MerchantProfile.MerchantCode, ReaderId, readers.CreateReaderCheckoutBody{Description: Description, ReturnUrl: &returnUrl, TotalAmount: readers.CreateReaderCheckoutAmount{Currency: "EUR", MinorUnit: 2, Value: int(TotalAmount)}})
 	if checkoutErr != nil {
-		return "error", fmt.Errorf(checkoutErr.Error())
+		return "error", fmt.Errorf("%s", checkoutErr.Error())
 	}
 	return *response.Data.ClientTransactionId, nil
 }
