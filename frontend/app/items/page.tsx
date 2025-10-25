@@ -50,7 +50,7 @@ export default function ItemsPage() {
 
   return (
     <div className="p-4">
-      <BarcodeSearchInput items={items} />
+      <BarcodeSearchInput items={items} visible={false} />
       <ItemCards items={items} onItemClick={addItem} />
     </div>
   );
