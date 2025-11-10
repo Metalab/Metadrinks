@@ -10,8 +10,9 @@ import (
 type User struct {
 	UserID       uuid.UUID      `json:"id" gorm:"primaryKey;unique;type:uuid;default:gen_random_uuid()"`
 	Name         string         `json:"name" gorm:"index,unique,size:24"`
-	Image        string         `json:"image" default:"assets/empty.webp"`
+	Image        string         `json:"image,omitempty"`
 	Password     string         `json:"password,omitempty"`
+	LoginBarcode string         `json:"login_barcode,omitempty"`
 	Balance      int            `json:"balance" gorm:"default:0"`
 	IsTrusted    *bool          `json:"is_trusted" gorm:"default:false"`
 	IsAdmin      *bool          `json:"is_admin" gorm:"default:false"`

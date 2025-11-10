@@ -15,8 +15,9 @@ import (
 var JWTAuthMiddleware *auth.GinJWTMiddleware
 
 type LoginForm struct {
-	Username string `form:"username" json:"username" binding:"required"`
+	Username string `form:"username" json:"username"`
 	Password string `form:"password" json:"password"`
+	Barcode  string `form:"barcode" json:"barcode"`
 }
 
 func HandlerMiddleware(authMiddleware *auth.GinJWTMiddleware) gin.HandlerFunc {
@@ -35,7 +36,7 @@ func InitParams() *auth.GinJWTMiddleware {
 		SigningAlgorithm: "HS512",
 		Timeout:          time.Minute * 5,
 		MaxRefresh:       time.Minute * 5,
-		// IdentityKey:      identityKey,
+		// IdentityKey:   identityKey,
 		PayloadFunc: payloadFunc(),
 
 		IdentityHandler: identityHandler(),
@@ -83,13 +84,24 @@ func authenticator() func(c *gin.Context) (any, error) {
 		}
 		username := loginVals.Username
 		password := loginVals.Password
+		barcode := loginVals.Barcode
 
-		user, err := TryAuthenticate(username, password)
-		if err != nil {
-			log.Printf("Failed authentication for user %s: %v\n", username, err)
-			return nil, auth.ErrFailedAuthentication
+		if username != "" && password != "" {
+			user, err := TryAuthenticate(username, password)
+			if err != nil {
+				log.Printf("Failed authentication for user %s: %v\n", username, err)
+				return nil, auth.ErrFailedAuthentication
+			}
+			return user, nil
+		} else if barcode != "" {
+			user, err := TryAuthenticateByBarcode(barcode)
+			if err != nil {
+				log.Printf("Failed authentication for barcode %s: %v\n", username, err)
+				return nil, auth.ErrFailedAuthentication
+			}
+			return user, nil
 		}
-		return user, nil
+		return nil, auth.ErrFailedAuthentication
 	}
 }
 
@@ -125,6 +137,7 @@ func loginResponse() func(c *gin.Context, code int, token string, expire time.Ti
 
 		// Clear sensitive fields before returning
 		user.Password = ""
+		user.LoginBarcode = ""
 
 		c.JSON(http.StatusOK, gin.H{
 			"code":   http.StatusOK,
@@ -146,6 +159,16 @@ func TryAuthenticate(username, password string) (*models.User, error) {
 		return nil, err
 	}
 
+	user.UsedAt = time.Now().Local()
+	models.DB.Save(&user)
+	return &user, nil
+}
+
+func TryAuthenticateByBarcode(barcode string) (*models.User, error) {
+	var user models.User
+	if err := models.DB.Where("login_barcode = ?", barcode).First(&user).Error; err != nil {
+		return nil, err
+	}
 	user.UsedAt = time.Now().Local()
 	models.DB.Save(&user)
 	return &user, nil

@@ -41,7 +41,23 @@ export function BarcodeSearchInput({
   const { loggedIn, login } = useAuth();
 
   const handleBarcodeScan = async (barcode: string) => {
-    // If not logged in, store the barcode and login as guest
+    const isLoginBarcode = barcode.length === 13 && /^04[0-9]/.test(barcode);
+
+    if (!loggedIn && isLoginBarcode) {
+      try {
+        await login("", undefined, true, barcode);
+      } catch (error) {
+        console.error("Failed to login with barcode:", error);
+      }
+      setValue("");
+      valueRef.current = "";
+      if (timerRef.current) {
+        clearTimeout(timerRef.current);
+        timerRef.current = null;
+      }
+      return;
+    }
+
     if (!loggedIn) {
       sessionStorage.setItem("pendingBarcode", barcode);
       try {
@@ -59,8 +75,6 @@ export function BarcodeSearchInput({
       return;
     }
 
-    // If logged in and we have items, dispatch event for the item to be added
-    // The items page will listen for this event and add it using the context
     const foundItem = items.find((item: Item) =>
       item.barcodes?.includes(barcode)
     );

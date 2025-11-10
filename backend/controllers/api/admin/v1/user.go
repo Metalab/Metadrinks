@@ -103,3 +103,72 @@ func FindUsers(c *gin.Context) {
 	c.Header("Content-Type", "application/json")
 	c.JSON(http.StatusOK, gin.H{"data": users})
 }
+
+type UpdateUserInput struct {
+	Name         string `json:"name,omitempty"`
+	Password     string `json:"password,omitempty"`
+	LoginBarcode string `json:"login_barcode,omitempty"`
+	Image        string `json:"image,omitempty"`
+	Balance      int    `json:"balance,omitempty"`
+	IsTrusted    *bool  `json:"is_trusted,omitempty"`
+	IsAdmin      *bool  `json:"is_admin,omitempty"`
+	IsActive     *bool  `json:"is_active,omitempty"`
+	IsRestricted *bool  `json:"is_restricted,omitempty"`
+}
+
+func UpdateUser(c *gin.Context) {
+	var input UpdateUserInput
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	var user models.User
+	if err := models.DB.Where("user_id = ?", c.Param("id")).First(&user).Error; err != nil {
+		c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"error": "record not found"})
+		return
+	}
+
+	if len(input.Name) > 24 {
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "name must not be longer than 24 characters"})
+		return
+	}
+
+	if input.Password != "" {
+		hashedPassword, err := crypto.HashPasswordSecure(input.Password)
+		if err != nil {
+			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+		input.Password = hashedPassword
+	}
+
+	if input.Balance < 0 {
+		// add logic for removing balance as administrative action in log
+	} else if input.Balance > 0 {
+		// add logic for adding balance as administrative action in log
+	}
+
+	updatedUser := models.User{Name: input.Name, Password: input.Password, LoginBarcode: input.LoginBarcode, Image: input.Image, Balance: input.Balance, IsTrusted: input.IsTrusted, IsAdmin: input.IsAdmin, IsActive: input.IsActive, IsRestricted: input.IsRestricted}
+
+	models.DB.Model(&user).Updates(&updatedUser)
+
+	notification := sse.SSENotification{
+		NotificationType: sse.SSENotificationType(sse.SSENotificationContentUpdate),
+		NotificationData: sse.SSENotificationPayload{
+			ContentPayload: &sse.SSENotificationContentUpdatePayload{
+				Type: "users",
+			},
+		},
+	}
+
+	notificationJSON, err := json.Marshal(notification)
+	if err != nil {
+		fmt.Printf("error marshalling notification: %s\n", err.Error())
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "failed to process notification"})
+		return
+	}
+
+	sse.Stream.SendMessage(string(notificationJSON))
+	c.JSON(http.StatusOK, gin.H{"data": user})
+}

@@ -11,7 +11,8 @@ interface AuthContextType {
   login: (
     username: string,
     password?: string,
-    redirect?: boolean
+    redirect?: boolean,
+    login_barcode?: string
   ) => Promise<User | null>;
   logout: (redirect?: boolean) => void;
   enableAutoRefresh: (enabled: boolean) => void;
@@ -108,13 +109,29 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const login = async (
     username: string,
     password?: string,
-    redirect: boolean = true
+    redirect: boolean = true,
+    login_barcode?: string
   ): Promise<User | null> => {
     try {
+      const body: {
+        username?: string;
+        password?: string;
+        barcode?: string;
+      } = {};
+
+      if (login_barcode) {
+        body.barcode = login_barcode;
+      } else {
+        body.username = username;
+        if (password) {
+          body.password = password;
+        }
+      }
+
       const res = await fetch(`${config.apiBaseUrl}/auth/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username, password }),
+        body: JSON.stringify(body),
         credentials: "include",
       });
 

@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 	sse "metalab/metadrinks/controllers/api/payment/v1"
+	"metalab/metadrinks/libs"
+	jwt "metalab/metadrinks/libs/auth"
 	"metalab/metadrinks/libs/crypto"
 	"net/http"
 	"time"
@@ -65,6 +67,9 @@ func CreateUser(c *gin.Context) {
 		},
 	}
 
+	user.Password = ""
+	user.LoginBarcode = ""
+
 	notificationJSON, err := json.Marshal(notification)
 	if err != nil {
 		fmt.Printf("error marshalling notification: %s\n", err.Error())
@@ -95,6 +100,7 @@ func FindUsers(c *gin.Context) {
 
 	for i := range users { // do not return the user password
 		users[i].Password = ""
+		users[i].LoginBarcode = ""
 	}
 
 	c.Header("Content-Type", "application/json")
@@ -123,25 +129,32 @@ func FindUser(c *gin.Context) {
 	}
 
 	user.Password = ""
+	user.LoginBarcode = ""
 	c.Header("Content-Type", "application/json")
 	c.JSON(http.StatusOK, gin.H{"data": user})
 }
 
 type UpdateUserInput struct {
-	Name         string `json:"name,omitempty"`
-	Password     string `json:"password,omitempty"`
-	Image        string `json:"image,omitempty"`
-	Balance      int    `json:"balance,omitempty"`
-	IsTrusted    *bool  `json:"is_trusted,omitempty"`
-	IsAdmin      *bool  `json:"is_admin,omitempty"`
-	IsActive     *bool  `json:"is_active,omitempty"`
-	IsRestricted *bool  `json:"is_restricted,omitempty"`
+	OldPassword          string `json:"old_password,omitempty"`
+	Password             string `json:"password,omitempty"`
+	GenerateLoginBarcode *bool  `json:"generate_login_barcode,omitempty"`
 }
 
 func UpdateUser(c *gin.Context) {
 	var input UpdateUserInput
+	var loginBarcode = ""
+	userClaims := jwt.ExtractClaims(c)
+	userId := uuid.MustParse(userClaims["userId"].(string))
 	if err := c.ShouldBindJSON(&input); err != nil {
 		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	if uId, err := uuid.Parse(c.Param("id")); err != nil {
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	} else if userId != uId {
+		c.AbortWithStatus(http.StatusForbidden)
 		return
 	}
 
@@ -151,12 +164,17 @@ func UpdateUser(c *gin.Context) {
 		return
 	}
 
-	if len(input.Name) > 24 {
-		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "name must not be longer than 24 characters"})
-		return
-	}
-
 	if input.Password != "" {
+		if input.OldPassword == "" {
+			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "old_password cannot be empty"})
+			return
+		}
+
+		if err := crypto.AuthenticateUser(user.Password, input.OldPassword); err != nil {
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "old_password does not match"})
+			return
+		}
+
 		hashedPassword, err := crypto.HashPasswordSecure(input.Password)
 		if err != nil {
 			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -165,13 +183,16 @@ func UpdateUser(c *gin.Context) {
 		input.Password = hashedPassword
 	}
 
-	if input.Balance < 0 {
-		// add logic for removing balance as administrative action in log
-	} else if input.Balance > 0 {
-		// add logic for adding balance as administrative action in log
+	if input.GenerateLoginBarcode != nil && *input.GenerateLoginBarcode == true {
+		generatedBarcode, err := libs.GenerateSecureEAN13()
+		if err != nil {
+			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("failed to generate barcode: %s", err.Error())})
+			return
+		}
+		loginBarcode = generatedBarcode
 	}
 
-	updatedUser := models.User{Name: input.Name, Password: input.Password, Image: input.Image, Balance: input.Balance, IsTrusted: input.IsTrusted, IsAdmin: input.IsAdmin, IsActive: input.IsActive, IsRestricted: input.IsRestricted}
+	updatedUser := models.User{Password: input.Password, LoginBarcode: loginBarcode}
 
 	models.DB.Model(&user).Updates(&updatedUser)
 
@@ -191,6 +212,10 @@ func UpdateUser(c *gin.Context) {
 		return
 	}
 
+	user.Password = ""
+	if loginBarcode == "" {
+		user.LoginBarcode = ""
+	}
 	sse.Stream.SendMessage(string(notificationJSON))
 	c.JSON(http.StatusOK, gin.H{"data": user})
 }

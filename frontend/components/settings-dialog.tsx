@@ -11,12 +11,15 @@ import {
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import {
   Construction,
   AlertTriangle,
   Palette,
   User,
   Loader2,
+  RefreshCw,
 } from "lucide-react";
 import { useUser } from "@/components/user-context";
 import { useSettings } from "@/components/settings-context";
@@ -49,6 +52,8 @@ export default function SettingsDialog({
   const { theme, setTheme } = useTheme();
   const [internalOpen, setInternalOpen] = React.useState(false);
   const [updating, setUpdating] = React.useState(false);
+  const [loginBarcode, setLoginBarcode] = React.useState<string>("");
+  const [refreshingBarcode, setRefreshingBarcode] = React.useState(false);
 
   const isControlled = controlledOpen !== undefined;
   const open = isControlled ? controlledOpen : internalOpen;
@@ -91,6 +96,41 @@ export default function SettingsDialog({
       );
     } finally {
       setUpdating(false);
+    }
+  };
+
+  const handleRefreshLoginBarcode = async () => {
+    if (!user?.id) return;
+
+    setRefreshingBarcode(true);
+    try {
+      const res = await fetch(`${config.apiBaseUrl}/api/v1/users/${user.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          generate_login_barcode: true,
+        }),
+      });
+
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || "Failed to generate login barcode");
+      }
+
+      const data = await res.json();
+      setLoginBarcode(data.data?.login_barcode || "");
+
+      toast.success("Login barcode generated successfully");
+    } catch (error) {
+      console.error("Failed to generate login barcode:", error);
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "Failed to generate login barcode"
+      );
+    } finally {
+      setRefreshingBarcode(false);
     }
   };
 
@@ -147,6 +187,37 @@ export default function SettingsDialog({
               </Select>
               <p className="text-xs text-muted-foreground">
                 Choose how the app looks to you
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="login-barcode" className="text-sm">
+                Login Barcode
+              </Label>
+              <div className="flex gap-2">
+                <Input
+                  id="login-barcode"
+                  type="text"
+                  placeholder="<not shown>"
+                  value={loginBarcode || ""}
+                  disabled
+                  className="flex-1"
+                />
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={handleRefreshLoginBarcode}
+                  disabled={refreshingBarcode || !user}
+                >
+                  {refreshingBarcode ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <RefreshCw className="h-4 w-4" />
+                  )}
+                </Button>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Generate a barcode to log in with a scanner
               </p>
             </div>
 
