@@ -37,7 +37,7 @@ export default function Header({ showSidebarTrigger = false }: HeaderProps) {
   return (
     <header className="relative p-4 pb-8">
       <div className="flex gap-[12px] justify-end items-center">
-        {maintenanceMode ? (
+        {maintenanceMode && !user?.is_admin ? (
           <ModeToggle />
         ) : (
           <>
