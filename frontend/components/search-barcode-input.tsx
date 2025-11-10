@@ -47,7 +47,9 @@ export function BarcodeSearchInput({
       try {
         await login("", undefined, true, barcode);
       } catch (error) {
-        console.error("Failed to login with barcode:", error);
+        toast.error("Login failed", {
+          description: `Failed to log in with barcode: ${error}`,
+        });
       }
       setValue("");
       valueRef.current = "";
@@ -63,7 +65,9 @@ export function BarcodeSearchInput({
       try {
         await login("Guest");
       } catch (error) {
-        console.error("Failed to login as guest:", error);
+        toast.error("Login failed", {
+          description: `Failed to log in as guest: ${error}`,
+        });
         sessionStorage.removeItem("pendingBarcode");
       }
       setValue("");
