@@ -86,7 +86,7 @@ func authenticator() func(c *gin.Context) (any, error) {
 		password := loginVals.Password
 		barcode := loginVals.Barcode
 
-		if username != "" && password != "" {
+		if username != "" {
 			user, err := TryAuthenticate(username, password)
 			if err != nil {
 				log.Printf("Failed authentication for user %s: %v\n", username, err)
