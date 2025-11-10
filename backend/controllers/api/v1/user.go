@@ -145,8 +145,14 @@ func UpdateUser(c *gin.Context) {
 	var loginBarcode = ""
 	userClaims := jwt.ExtractClaims(c)
 	userId := uuid.MustParse(userClaims["userId"].(string))
+	userRestricted := userClaims["restricted"].(bool)
 	if err := c.ShouldBindJSON(&input); err != nil {
 		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	if userRestricted {
+		c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"error": "user is restricted"})
 		return
 	}
 
