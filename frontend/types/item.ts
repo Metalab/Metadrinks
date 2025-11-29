@@ -8,7 +8,7 @@ export type Item = {
   amount?: number;
   barcodes?: string[];
   nutrition_info?: NutritionInfo[];
-  is_active: boolean;
+  is_active?: boolean;
 };
 
 type NutritionInfo = {

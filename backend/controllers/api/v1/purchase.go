@@ -69,12 +69,12 @@ func CreatePurchase(c *gin.Context) {
 	}
 
 	if input.Amount != 0 && len(input.Items) != 0 {
-		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"message": "only one of 'items' and 'amount' can be specified"})
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"message": "Only one of 'items' and 'amount' can be specified"})
 		return
 	}
 
 	if input.Amount != 0 && input.PaymentType == models.PaymentTypeBalance {
-		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"message": "balance payment type cannot be used with amount"})
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"message": "Balance payment type cannot be used with amount"})
 		return
 	}
 
@@ -85,6 +85,10 @@ func CreatePurchase(c *gin.Context) {
 
 	for _, v := range input.Items {
 		item := FindItemById(v.ItemId)
+		if item.IsActive != nil && *item.IsActive == false {
+			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"message": "Attempted to purchase inactive item"})
+			return
+		}
 		finalCost += item.Price * v.Amount
 		returnedItemsArray = append(returnedItemsArray, models.PurchaseItem{ItemId: v.ItemId, ProductName: item.ProductName, ProductVariant: item.ProductVariant, Price: item.Price, Amount: v.Amount})
 		if v.Amount > 1 {
