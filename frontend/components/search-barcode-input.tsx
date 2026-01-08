@@ -5,6 +5,8 @@ import { SearchIcon } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { useAuth } from "./auth-context";
 import { toast } from "sonner";
+import { useSelectedItems } from "./selected-items-context";
+import { config } from "@/lib/config";
 
 interface Item {
   id: string;
@@ -38,7 +40,19 @@ export function BarcodeSearchInput({
     }, 5000); // 5 seconds
   };
 
-  const { loggedIn, login } = useAuth();
+  const { loggedIn, login, logout } = useAuth();
+  const selectedItemsRef = useRef<Array<{ id: string; quantity: number }>>([]);
+  const clearItemsRef = useRef<(() => void) | undefined>(undefined);
+
+  // safely access selectedItems context - not available in all contexts
+  try {
+    const context = useSelectedItems();
+    selectedItemsRef.current = context.selectedItems;
+    clearItemsRef.current = context.clearItems;
+  } catch {
+    selectedItemsRef.current = [];
+    clearItemsRef.current = undefined;
+  }
 
   const handleBarcodeScan = async (barcode: string) => {
     const isLoginBarcode = barcode.length === 13 && /^04[0-9]/.test(barcode);
@@ -69,6 +83,81 @@ export function BarcodeSearchInput({
           description: `Failed to log in as guest: ${error}`,
         });
         sessionStorage.removeItem("pendingBarcode");
+      }
+      setValue("");
+      valueRef.current = "";
+      if (timerRef.current) {
+        clearTimeout(timerRef.current);
+        timerRef.current = null;
+      }
+      return;
+    }
+
+    if (loggedIn && isLoginBarcode) {
+      // keep current items, switch to new user, then create purchase with new user's balance
+      // also gets the latest state from the ref when scanning
+      const itemsToCheckout = [...selectedItemsRef.current];
+
+      try {
+        await login("", undefined, false, barcode);
+
+        // create purchase with items from previous user
+        if (itemsToCheckout.length > 0) {
+          try {
+            const payload = {
+              items: itemsToCheckout.map((item) => ({
+                id: item.id,
+                amount: item.quantity,
+              })),
+              payment_type: "balance",
+            };
+
+            const response = await fetch(
+              `${config.apiBaseUrl}/api/v1/purchases`,
+              {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload),
+                credentials: "include",
+              }
+            );
+
+            if (!response.ok) {
+              const errorText = await response.text();
+              let errorMessage = "Payment failed";
+              try {
+                const errorData = JSON.parse(errorText);
+                errorMessage =
+                  errorData.message || errorData.error || errorMessage;
+              } catch {}
+              throw new Error(errorMessage);
+            }
+
+            if (clearItemsRef.current) {
+              clearItemsRef.current();
+            }
+
+            logout();
+            toast.success("Purchase completed", {
+              description: "Items charged to your balance",
+            });
+          } catch (error) {
+            toast.error("Purchase failed", {
+              description:
+                error instanceof Error
+                  ? error.message
+                  : "Failed to complete purchase",
+            });
+          }
+        } else {
+          toast.success("User switched", {
+            description: "Logged in with new user",
+          });
+        }
+      } catch (error) {
+        toast.error("Login failed", {
+          description: `Failed to log in with barcode: ${error}`,
+        });
       }
       setValue("");
       valueRef.current = "";
