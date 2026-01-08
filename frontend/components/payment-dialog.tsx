@@ -234,6 +234,20 @@ function CardForm({ onComplete, amountInCents }: PaymentFormProps) {
     }
   }, [defaultReaderId]);
 
+  // automatically start payment when dialog opens
+  useEffect(() => {
+    if (
+      defaultReaderId &&
+      isConnected &&
+      status === "idle" &&
+      !isProcessing &&
+      !error
+    ) {
+      startPayment();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [defaultReaderId, isConnected]);
+
   useEffect(() => {
     if (lastEvent?.type === "transaction_update" && clientTransactionId) {
       const data = lastEvent.data.transaction_payload;
