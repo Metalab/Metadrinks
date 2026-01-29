@@ -55,7 +55,7 @@ func main() {
 
 	models.ConnectDatabase()
 
-	libs.Login(os.Getenv("SUMUP_API_KEY"))
+	libs.Login(os.Getenv("SUMUP_API_KEY"), os.Getenv("SUMUP_MERCHANT_ID"))
 	libs.InitAPIReaders()
 
 	authMiddleware, err := authLib.New(auth.InitParams())

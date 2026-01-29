@@ -66,6 +66,7 @@ func BoolPointer(b bool) *bool {
 func LoadEnvironmentVariables() error {
 	enforcedVars := []string{
 		"SUMUP_API_KEY",
+		"SUMUP_MERCHANT_ID",
 		"SUMUP_RETURN_URL",
 		"JWT_SECRET",
 		"GIN_TRUSTED_PROXIES",

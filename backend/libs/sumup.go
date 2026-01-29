@@ -11,16 +11,17 @@ import (
 
 	"github.com/sumup/sumup-go"
 	"github.com/sumup/sumup-go/client"
-	"github.com/sumup/sumup-go/merchant"
+	"github.com/sumup/sumup-go/merchants"
 	"github.com/sumup/sumup-go/readers"
+	"github.com/sumup/sumup-go/shared"
 )
 
 var (
-	SumupAccount *merchant.MerchantAccount
-	SumupClient  *sumup.Client
+	SumupMerchant *merchants.Merchant
+	SumupClient   *sumup.Client
 )
 
-func Login(apiKey string) {
+func Login(apiKey string, merchantId string) {
 	SumupClient = sumup.NewClient(client.WithAPIKey(apiKey))
 	var settings models.Settings
 
@@ -28,7 +29,7 @@ func Login(apiKey string) {
 		panic(err.Error())
 	}
 
-	account, err := SumupClient.Merchant.Get(context.Background(), merchant.GetAccountParams{})
+	merchant, err := SumupClient.Merchants.Get(context.Background(), merchantId, merchants.GetParams{}) //this is why we need the merchant id. there is no way to check what merchant we currently are (i guess?)
 	if err != nil {
 		fmt.Printf("[ERROR] SumUp API: Error getting merchant account: %s\n", err.Error())
 		updatedSettings := models.Settings{MaintenanceMode: settings.MaintenanceMode, DefaultReaderId: settings.DefaultReaderId, MerchantInfo: nil}
@@ -36,15 +37,15 @@ func Login(apiKey string) {
 		return
 	}
 
-	formattedDbString := fmt.Sprintf("%s (%s)", *account.MerchantProfile.CompanyName, *account.MerchantProfile.MerchantCode)
-	fmt.Printf("[INFO] SumUp API: Authorized for merchant %q (%s)\n", *account.MerchantProfile.MerchantCode, *account.MerchantProfile.CompanyName)
+	formattedDbString := fmt.Sprintf("%s (%s)", *merchant.Company.Name, merchant.MerchantCode)
+	fmt.Printf("[INFO] SumUp API: Authorized for merchant %q (%s)\n", merchant.MerchantCode, *merchant.Company.Name)
 	updatedSettings := models.Settings{MaintenanceMode: settings.MaintenanceMode, DefaultReaderId: settings.DefaultReaderId, MerchantInfo: &formattedDbString}
 	models.DB.Model(&settings).Updates(&updatedSettings)
-	SumupAccount = account
+	SumupMerchant = merchant
 }
 
 func InitAPIReaders() {
-	response, err := SumupClient.Readers.List(context.Background(), *SumupAccount.MerchantProfile.MerchantCode)
+	response, err := SumupClient.Readers.List(context.Background(), SumupMerchant.MerchantCode)
 	if err != nil {
 		fmt.Printf("[ERROR] SumUp API: Error fetching readers: %s\n", err.Error())
 		return
@@ -52,7 +53,7 @@ func InitAPIReaders() {
 
 	var rIds []string
 	for _, v := range response.Items {
-		rIds = append(rIds, string(v.Id))
+		rIds = append(rIds, string(v.ID))
 	}
 
 	// do not delete and only update existing readers that are still in api response,
@@ -70,21 +71,21 @@ func InitAPIReaders() {
 
 	readersCount := 0
 	for _, v := range response.Items {
-		apiReader := sumupmodels.Reader{ReaderId: sumupmodels.ReaderId(v.Id), Name: sumupmodels.ReaderName(v.Name), Status: sumupmodels.ReaderStatus(v.Status), Device: sumupmodels.ReaderDevice{Identifier: v.Device.Identifier, Model: sumupmodels.ReaderDeviceModel(v.Device.Model)}, CreatedAt: v.CreatedAt, UpdatedAt: v.UpdatedAt}
-		models.DB.Where("reader_id = ?", v.Id).Save(&apiReader)
+		apiReader := sumupmodels.Reader{ReaderId: sumupmodels.ReaderId(v.ID), Name: sumupmodels.ReaderName(v.Name), Status: sumupmodels.ReaderStatus(v.Status), Device: sumupmodels.ReaderDevice{Identifier: v.Device.Identifier, Model: sumupmodels.ReaderDeviceModel(v.Device.Model)}, CreatedAt: v.CreatedAt, UpdatedAt: v.UpdatedAt}
+		models.DB.Where("reader_id = ?", v.ID).Save(&apiReader)
 		readersCount++
 	}
 
 	fmt.Printf("[INFO] SumUp API: Initialized %d linked reader(s).\n", readersCount)
 }
 
-func StartReaderCheckout(ReaderId string, TotalAmount uint, Description *string) (ClientTransactionId string, Error error) {
+func StartReaderCheckout(ReaderId string, TotalAmount uint, Description *string) (ClientTransactionID string, Error error) {
 	returnUrl := os.Getenv("SUMUP_RETURN_URL")
-	response, checkoutErr := SumupClient.Readers.CreateCheckout(context.Background(), *SumupAccount.MerchantProfile.MerchantCode, ReaderId, readers.CreateReaderCheckoutBody{Description: Description, ReturnUrl: &returnUrl, TotalAmount: readers.CreateReaderCheckoutAmount{Currency: "EUR", MinorUnit: 2, Value: int(TotalAmount)}})
+	response, checkoutErr := SumupClient.Readers.CreateCheckout(context.Background(), SumupMerchant.MerchantCode, ReaderId, readers.CreateCheckout{Description: Description, ReturnURL: &returnUrl, TotalAmount: readers.CreateCheckoutTotalAmount{Currency: "EUR", MinorUnit: 2, Value: int(TotalAmount)}})
 	if checkoutErr != nil {
 		return "error", fmt.Errorf("%s", checkoutErr.Error())
 	}
-	return *response.Data.ClientTransactionId, nil
+	return response.Data.ClientTransactionID, nil
 }
 
 func InitiallyCheckIfReaderIsReady(ReaderId string) (Result *sumupmodels.Reader, Error error) {
@@ -93,8 +94,7 @@ func InitiallyCheckIfReaderIsReady(ReaderId string) (Result *sumupmodels.Reader,
 	secondsBetween := 5
 	for i := 0; i <= count; i++ {
 		time.Sleep(time.Second * time.Duration(secondsBetween))
-		// response, err := SumupClient.Readers.List(context.Background(), *SumupAccount.MerchantProfile.MerchantCode)
-		reader, err := SumupClient.Readers.Get(context.Background(), *SumupAccount.MerchantProfile.MerchantCode, readers.ReaderId(ReaderId), readers.GetReaderParams{})
+		reader, err := SumupClient.Readers.Get(context.Background(), SumupMerchant.MerchantCode, readers.ReaderID(ReaderId), readers.GetParams{})
 		if err != nil {
 			fmt.Printf("[ERROR] SumUp API: Error getting reader %s (Iteration %d/%d): %s\n", ReaderId, i, count, err.Error())
 			continue
@@ -119,9 +119,8 @@ func InitiallyCheckIfReaderIsReady(ReaderId string) (Result *sumupmodels.Reader,
 	return nil, fmt.Errorf("reader %s not ready after waiting %d seconds", ReaderId, count*secondsBetween)
 }
 
-//goland:noinspection GoUnusedExportedFunction
 func CheckIfReaderIsReady(ReaderId string) (IsReady bool, Error error) {
-	reader, err := SumupClient.Readers.Get(context.Background(), *SumupAccount.MerchantProfile.MerchantCode, readers.ReaderId(ReaderId), readers.GetReaderParams{})
+	reader, err := SumupClient.Readers.Get(context.Background(), SumupMerchant.MerchantCode, readers.ReaderID(ReaderId), readers.GetParams{})
 	if err != nil {
 		fmt.Printf("[ERROR] SumUp API: Error getting reader %s: %s\n", ReaderId, err.Error())
 		return false, err
@@ -134,4 +133,29 @@ func CheckIfReaderIsReady(ReaderId string) (IsReady bool, Error error) {
 	models.DB.Where(&sumupmodels.Reader{ReaderId: sumupmodels.ReaderId(ReaderId)}).Updates(editedReader)
 	fmt.Printf("[INFO] SumUp API: Reader %s returned ready\n", ReaderId)
 	return true, nil
+}
+
+// formatSumUpError formats SumUp API errors with dereferenced pointer values for better readability
+func FormatSumUpError(err error) string {
+	if problem, ok := err.(*shared.Problem); ok {
+		detail := "<nil>"
+		if problem.Detail != nil {
+			detail = *problem.Detail
+		}
+		instance := "<nil>"
+		if problem.Instance != nil {
+			instance = *problem.Instance
+		}
+		status := 0
+		if problem.Status != nil {
+			status = *problem.Status
+		}
+		title := "<nil>"
+		if problem.Title != nil {
+			title = *problem.Title
+		}
+		return fmt.Sprintf("[Error %d] %s (type: %s, detail: %s, instance: %s)",
+			status, title, problem.Type, detail, instance)
+	}
+	return err.Error()
 }
