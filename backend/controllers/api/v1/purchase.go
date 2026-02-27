@@ -109,8 +109,8 @@ func CreatePurchase(c *gin.Context) {
 		transactionStatus = sumupmodels.TransactionFullStatusPending
 		clientTransactionId, err = libs.StartReaderCheckout(input.ReaderId, finalCost, &finalTransactionDescription)
 		if err != nil {
-			fmt.Printf("error while creating reader checkout: %s\n", err.Error())
-			c.AbortWithStatus(http.StatusInternalServerError)
+			fmt.Printf("error while creating reader checkout: %s\n", libs.FormatSumUpError(err))
+			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": libs.FormatSumUpError(err)})
 			return
 		}
 	case models.PaymentTypeCash:

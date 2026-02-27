@@ -2,6 +2,7 @@ package libs
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"time"
@@ -83,7 +84,7 @@ func StartReaderCheckout(ReaderId string, TotalAmount uint, Description *string)
 	returnUrl := os.Getenv("SUMUP_RETURN_URL")
 	response, checkoutErr := SumupClient.Readers.CreateCheckout(context.Background(), SumupMerchant.MerchantCode, ReaderId, readers.CreateCheckout{Description: Description, ReturnURL: &returnUrl, TotalAmount: readers.CreateCheckoutTotalAmount{Currency: "EUR", MinorUnit: 2, Value: int(TotalAmount)}})
 	if checkoutErr != nil {
-		return "error", fmt.Errorf("%s", checkoutErr.Error())
+		return "error", checkoutErr
 	}
 	return response.Data.ClientTransactionID, nil
 }
@@ -135,9 +136,28 @@ func CheckIfReaderIsReady(ReaderId string) (IsReady bool, Error error) {
 	return true, nil
 }
 
-// formatSumUpError formats SumUp API errors with dereferenced pointer values for better readability
+// FormatSumUpError formats SumUp API errors with dereferenced pointer values for better readability
 func FormatSumUpError(err error) string {
-	if problem, ok := err.(*shared.Problem); ok {
+	// handle specific reader checkout errors
+	var readerErr *readers.CreateReaderCheckoutUnprocessableEntity
+	if errors.As(err, &readerErr) {
+		if len(readerErr.Errors) > 0 {
+			for _, errDetail := range readerErr.Errors {
+				if problemDetail, ok := errDetail.(*shared.Problem); ok {
+					detail := ""
+					if problemDetail.Detail != nil {
+						detail = *problemDetail.Detail
+					}
+					return fmt.Sprintf("%s", detail)
+				}
+				return fmt.Sprintf("%v", errDetail)
+			}
+		}
+	}
+
+	// handle generic shared.Problem errors
+	var problem *shared.Problem
+	if errors.As(err, &problem) {
 		detail := "<nil>"
 		if problem.Detail != nil {
 			detail = *problem.Detail
@@ -157,5 +177,6 @@ func FormatSumUpError(err error) string {
 		return fmt.Sprintf("[Error %d] %s (type: %s, detail: %s, instance: %s)",
 			status, title, problem.Type, detail, instance)
 	}
+
 	return err.Error()
 }

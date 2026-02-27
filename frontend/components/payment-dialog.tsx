@@ -36,7 +36,7 @@ interface PaymentFormProps {
 
 function usePaymentCompletion(
   initialCompleted = false,
-  onComplete?: () => void
+  onComplete?: () => void,
 ) {
   const [isCompleted, setIsCompleted] = useState(initialCompleted);
   const [countdown, setCountdown] = useState(5);
@@ -55,7 +55,7 @@ function usePaymentCompletion(
     } else if (isCompleted && countdown === 0) {
       onCompleteRef.current?.();
       const closeButton = document.querySelector(
-        "[data-dialog-close]"
+        "[data-dialog-close]",
       ) as HTMLButtonElement;
       if (closeButton) {
         closeButton.click();
@@ -109,7 +109,7 @@ function PaymentCompletedState({
 function createPurchasePayload(
   selectedItems: { id: string; quantity: number }[],
   paymentType: string,
-  additionalData?: Record<string, unknown>
+  additionalData?: Record<string, unknown>,
 ) {
   return {
     items: selectedItems.map((item) => ({
@@ -125,6 +125,7 @@ function CashForm({ onComplete, amountInCents }: PaymentFormProps) {
   const { selectedItems } = useSelectedItems();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [paymentResult, setPaymentResult] = useState<unknown>(null);
+  const [error, setError] = useState<string | null>(null);
 
   const { isCompleted, setIsCompleted, countdown } = usePaymentCompletion(
     false,
@@ -132,7 +133,7 @@ function CashForm({ onComplete, amountInCents }: PaymentFormProps) {
       if (paymentResult) {
         onComplete?.(paymentResult);
       }
-    }
+    },
   );
 
   const isBalanceTopUp = amountInCents !== undefined;
@@ -144,6 +145,7 @@ function CashForm({ onComplete, amountInCents }: PaymentFormProps) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
+    setError(null);
 
     try {
       let payload;
@@ -164,7 +166,19 @@ function CashForm({ onComplete, amountInCents }: PaymentFormProps) {
       });
 
       if (!response.ok) {
-        throw new Error(`Failed to create purchase: ${response.statusText}`);
+        const errorText = await response.text();
+        let errorMessage = response.statusText;
+
+        try {
+          const errorData = JSON.parse(errorText);
+          if (errorData.message) {
+            errorMessage = errorData.message;
+          } else if (errorData.error) {
+            errorMessage = errorData.error;
+          }
+        } catch {}
+
+        throw new Error(`Failed to create purchase: ${errorMessage}`);
       }
 
       const result = await response.json();
@@ -172,6 +186,7 @@ function CashForm({ onComplete, amountInCents }: PaymentFormProps) {
       setIsCompleted(true);
     } catch (error) {
       console.error("Error creating cash purchase:", error);
+      setError(error instanceof Error ? error.message : "Payment failed");
     } finally {
       setIsSubmitting(false);
     }
@@ -191,15 +206,27 @@ function CashForm({ onComplete, amountInCents }: PaymentFormProps) {
             : `Please put the cash (€${totalInEuros}) into the register.`}
         </DialogDescription>
       </DialogHeader>
+
+      {error && (
+        <div className="flex flex-col items-center justify-center gap-4 py-2">
+          <div className="text-sm text-red-500 text-center">{error}</div>
+        </div>
+      )}
+
       <DialogFooter className="pt-4">
         <DialogClose asChild>
           <Button variant="outline" disabled={isSubmitting}>
             Cancel
           </Button>
         </DialogClose>
-        <Button type="submit" disabled={isSubmitting}>
-          {isSubmitting ? "Processing..." : "Done"}
-        </Button>
+
+        {error ? (
+          <Button onClick={() => setError(null)}>Try Again</Button>
+        ) : (
+          <Button type="submit" disabled={isSubmitting}>
+            {isSubmitting ? "Processing..." : "Done"}
+          </Button>
+        )}
       </DialogFooter>
     </form>
   );
@@ -211,7 +238,7 @@ function CardForm({ onComplete, amountInCents }: PaymentFormProps) {
   const { isConnected, lastEvent } = useSSE();
   const [isProcessing, setIsProcessing] = useState(false);
   const [clientTransactionId, setClientTransactionId] = useState<string | null>(
-    null
+    null,
   );
   const [status, setStatus] = useState<string>("idle");
   const [error, setError] = useState<string | null>(null);
@@ -223,7 +250,7 @@ function CardForm({ onComplete, amountInCents }: PaymentFormProps) {
       if (paymentResult) {
         onComplete?.(paymentResult);
       }
-    }
+    },
   );
 
   const defaultReaderId = settings?.default_reader_id;
@@ -310,7 +337,19 @@ function CardForm({ onComplete, amountInCents }: PaymentFormProps) {
       });
 
       if (!response.ok) {
-        throw new Error(`Failed to create purchase: ${response.statusText}`);
+        const errorText = await response.text();
+        let errorMessage = response.statusText;
+
+        try {
+          const errorData = JSON.parse(errorText);
+          if (errorData.message) {
+            errorMessage = errorData.message;
+          } else if (errorData.error) {
+            errorMessage = errorData.error;
+          }
+        } catch {}
+
+        throw new Error(`Failed to create purchase: ${errorMessage}`);
       }
 
       const result = await response.json();
@@ -336,7 +375,7 @@ function CardForm({ onComplete, amountInCents }: PaymentFormProps) {
           method: "DELETE",
           headers: { "Content-Type": "application/json" },
           credentials: "include",
-        }
+        },
       );
     } catch (err) {
       console.error("Failed to terminate payment:", err);
@@ -445,7 +484,7 @@ function BalanceForm({ onComplete }: PaymentFormProps) {
       if (paymentResult) {
         onComplete?.(paymentResult);
       }
-    }
+    },
   );
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -539,7 +578,7 @@ export function PaymentDialog({
 }: PaymentDialogProps) {
   const { settings } = useSettings();
   const [selected, setSelected] = useState<KnownMethod | undefined>(
-    (method as KnownMethod) ?? undefined
+    (method as KnownMethod) ?? undefined,
   );
 
   function normalizeMethod(m?: string): KnownMethod | undefined {
