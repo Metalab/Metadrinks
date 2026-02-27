@@ -109,7 +109,7 @@ type UpdateUserInput struct {
 	Password     string `json:"password,omitempty"`
 	LoginBarcode string `json:"login_barcode,omitempty"`
 	Image        string `json:"image,omitempty"`
-	Balance      int    `json:"balance,omitempty"`
+	Balance      *int   `json:"balance,omitempty"`
 	IsTrusted    *bool  `json:"is_trusted,omitempty"`
 	IsAdmin      *bool  `json:"is_admin,omitempty"`
 	IsActive     *bool  `json:"is_active,omitempty"`
@@ -143,11 +143,11 @@ func UpdateUser(c *gin.Context) {
 		input.Password = hashedPassword
 	}
 
-	if input.Balance < 0 {
+	/*if input.Balance < 0 {
 		// add logic for removing balance as administrative action in log
 	} else if input.Balance > 0 {
 		// add logic for adding balance as administrative action in log
-	}
+	}*/
 
 	updatedUser := models.User{Name: input.Name, Password: input.Password, LoginBarcode: input.LoginBarcode, Image: input.Image, Balance: input.Balance, IsTrusted: input.IsTrusted, IsAdmin: input.IsAdmin, IsActive: input.IsActive, IsRestricted: input.IsRestricted}
 

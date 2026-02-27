@@ -21,11 +21,12 @@ func GetUserBalance(userId uuid.UUID) (*int, error) {
 		return nil, fmt.Errorf("user is restricted")
 	}
 
-	return &user.Balance, nil
+	return user.Balance, nil
 }
 
 func UpdateUserBalance(userId uuid.UUID, change int) {
 	var user models.User
+	changePtr := &change
 
 	if err := models.DB.Where("user_id = ?", userId).First(&user).Error; err != nil {
 		return
@@ -35,7 +36,8 @@ func UpdateUserBalance(userId uuid.UUID, change int) {
 		return
 	}
 
-	user.Balance = user.Balance + change
+	balancePtr := *user.Balance + *changePtr
+	user.Balance = &balancePtr
 	models.DB.Save(&user)
 }
 

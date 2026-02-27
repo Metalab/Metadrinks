@@ -13,7 +13,7 @@ type User struct {
 	Image        string         `json:"image,omitempty"`
 	Password     string         `json:"password,omitempty"`
 	LoginBarcode string         `json:"login_barcode,omitempty"`
-	Balance      int            `json:"balance" gorm:"default:0"`
+	Balance      *int           `json:"balance" gorm:"default:0" binding:"exists"`
 	IsTrusted    *bool          `json:"is_trusted" gorm:"default:false"`
 	IsAdmin      *bool          `json:"is_admin" gorm:"default:false"`
 	IsActive     *bool          `json:"is_active" gorm:"default:true"`
