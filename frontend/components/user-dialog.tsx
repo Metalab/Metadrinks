@@ -13,7 +13,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { Dispatch, SetStateAction } from "react";
+import {Dispatch, SetStateAction, SubmitEvent} from "react";
 import { useRouter } from "next/navigation";
 import { config } from "@/lib/config";
 
@@ -32,7 +32,9 @@ export function UserDialog({
 }: UserDialogProps) {
   const router = useRouter();
 
-  const handleSubmit = async () => {
+  const handleSubmit = async (event?: SubmitEvent) => {
+    event?.preventDefault();
+
     const nameInput = document.getElementById("name") as HTMLInputElement;
     const pinInput = document.getElementById("pin") as HTMLInputElement;
     const name = nameInput?.value;
@@ -68,51 +70,53 @@ export function UserDialog({
           className="sm:max-w-[425px]"
           onOpenAutoFocus={(e) => e.preventDefault()}
         >
-          <DialogHeader>
-            <DialogTitle>Create User</DialogTitle>
-            <DialogDescription>
-              Enter the details for the new user.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="grid gap-4">
-            <div className="grid gap-3">
-              <Label htmlFor="name">Name</Label>
-              <Input
-                id="name"
-                name="name"
-                placeholder="Your username"
-                maxLength={24}
-                defaultValue={username}
-                disabled={!!username}
-                required
-                autoFocus={false}
-              />
+          <form onSubmit={handleSubmit}>
+            <DialogHeader>
+              <DialogTitle>Create User</DialogTitle>
+              <DialogDescription>
+                Enter the details for the new user.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="grid gap-4">
+              <div className="grid gap-3">
+                <Label htmlFor="name">Name</Label>
+                <Input
+                  id="name"
+                  name="name"
+                  placeholder="Your username"
+                  maxLength={24}
+                  defaultValue={username}
+                  disabled={!!username}
+                  required
+                  autoFocus={false}
+                />
+              </div>
+              <div className="grid gap-3">
+                <Label htmlFor="pin">PIN</Label>
+                <Input
+                  id="pin"
+                  name="pin"
+                  type="password"
+                  placeholder="4-10 digit PIN (optional)"
+                  minLength={4}
+                  maxLength={10}
+                  pattern="[0-9]*"
+                  inputMode="numeric"
+                  autoFocus={false}
+                />
+              </div>
             </div>
-            <div className="grid gap-3">
-              <Label htmlFor="pin">PIN</Label>
-              <Input
-                id="pin"
-                name="pin"
-                type="password"
-                placeholder="4-10 digit PIN (optional)"
-                minLength={4}
-                maxLength={10}
-                pattern="[0-9]*"
-                inputMode="numeric"
-                autoFocus={false}
-              />
-            </div>
-          </div>
-          <DialogFooter className="flex justify-between">
-            <DialogClose asChild>
-              <Button type="button" variant="outline">
-                Cancel
+            <DialogFooter className="flex justify-between">
+              <DialogClose asChild>
+                <Button type="button" variant="outline">
+                  Cancel
+                </Button>
+              </DialogClose>
+              <Button type="submit">
+                Create
               </Button>
-            </DialogClose>
-            <Button onClick={handleSubmit} type="button">
-              Create
-            </Button>
-          </DialogFooter>
+            </DialogFooter>
+          </form>
         </DialogContent>
       </Dialog>
     </>
