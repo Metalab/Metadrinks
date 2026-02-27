@@ -115,6 +115,7 @@ func CreatePurchase(c *gin.Context) {
 		}
 	case models.PaymentTypeCash:
 		if input.Amount != 0 {
+			finalCost = input.Amount
 			libs.UpdateUserBalance(userId, int(input.Amount))
 		}
 		transactionStatus = sumupmodels.TransactionFullStatusSuccessful
