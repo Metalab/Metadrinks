@@ -5,10 +5,6 @@ services:
       - 5432:5432
     env_file:
       - .env.backend
-    environment:
-      POSTGRES_USER: ${DB_USER}
-      POSTGRES_PASSWORD: ${DB_PASSWORD}
-      POSTGRES_DB: ${DB_DATABASE}
     volumes:
       - db-data:/var/lib/postgresql/data/
   backend:
