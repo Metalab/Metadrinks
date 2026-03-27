@@ -74,7 +74,9 @@ export default function UserCards({ search = "" }: { search?: string }) {
                     <CardTitle className="break-words whitespace-normal hyphens-auto leading-normal wrap-anywhere">
                       {user.name}
                     </CardTitle>
-                    <CardDescription>
+                    <CardDescription
+                      className={user.balance < 0 ? "text-red-500" : undefined}
+                    >
                       {(user.balance / 100).toFixed(2)}€
                     </CardDescription>
                   </CardHeader>
