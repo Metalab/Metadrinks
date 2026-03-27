@@ -103,7 +103,7 @@ func InitiallyCheckIfReaderIsReady(ReaderId string) (Result *sumupmodels.Reader,
 			fmt.Printf("[INFO] SumUp API: Reader %s not ready (Iteration %d/%d)\n", ReaderId, i, count)
 			continue
 		}
-		fmt.Printf("[INFO] SumUp API: Reader %s returned ready\n", ReaderId)
+		//fmt.Printf("[INFO] SumUp API: Reader %s returned ready\n", ReaderId)
 		readerReady = true
 		break
 	}
@@ -159,10 +159,6 @@ func FormatSumUpError(err error) string {
 		if problem.Detail != nil {
 			detail = *problem.Detail
 		}
-		instance := "<nil>"
-		if problem.Instance != nil {
-			instance = *problem.Instance
-		}
 		status := 0
 		if problem.Status != nil {
 			status = *problem.Status
@@ -171,8 +167,8 @@ func FormatSumUpError(err error) string {
 		if problem.Title != nil {
 			title = *problem.Title
 		}
-		return fmt.Sprintf("[Error %d] %s (type: %s, detail: %s, instance: %s)",
-			status, title, problem.Type, detail, instance)
+		return fmt.Sprintf("[Error %d] %s (%s)",
+			status, title, detail)
 	}
 
 	return err.Error()
