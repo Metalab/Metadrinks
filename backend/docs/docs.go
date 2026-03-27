@@ -432,7 +432,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/readers.Create"
+                            "$ref": "#/definitions/sumup.ReadersCreateParams"
                         }
                     }
                 ],
@@ -990,14 +990,18 @@ const docTemplate = `{
                 }
             }
         },
-        "readers.Create": {
+        "sumup.Metadata": {
+            "type": "object",
+            "additionalProperties": {}
+        },
+        "sumup.ReadersCreateParams": {
             "type": "object",
             "properties": {
                 "metadata": {
                     "description": "Set of user-defined key-value pairs attached to the object. Partial updates are not supported. When updating, always\nsubmit whole metadata. Maximum of 64 parameters are allowed in the object.\nMax properties: 64",
                     "allOf": [
                         {
-                            "$ref": "#/definitions/shared.Metadata"
+                            "$ref": "#/definitions/sumup.Metadata"
                         }
                     ]
                 },
@@ -1010,10 +1014,6 @@ const docTemplate = `{
                     "type": "string"
                 }
             }
-        },
-        "shared.Metadata": {
-            "type": "object",
-            "additionalProperties": {}
         },
         "v1.CreateItemInput": {
             "type": "object",

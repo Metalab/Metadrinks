@@ -12,7 +12,7 @@ import (
 	sumupmodels "metalab/metadrinks/models/sumup"
 
 	"github.com/google/uuid"
-	"github.com/sumup/sumup-go/readers"
+	"github.com/sumup/sumup-go"
 
 	"github.com/gin-gonic/gin"
 )
@@ -28,11 +28,11 @@ import (
 //	@Failure		400
 //	@Failure		500
 //
-//	@Param			user	body	readers.Create	true	"Create reader"
+//	@Param			user	body	sumup.ReadersCreateParams	true	"Create reader"
 //
 //	@Router			/readers/link [post]
 func CreateReader(c *gin.Context) {
-	var input readers.Create
+	var input sumup.ReadersCreateParams
 	if err := c.ShouldBindJSON(&input); err != nil {
 		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
@@ -43,7 +43,7 @@ func CreateReader(c *gin.Context) {
 		return
 	}
 
-	reader, err := libs.SumupClient.Readers.Create(context.Background(), libs.SumupMerchant.MerchantCode, readers.Create{Name: input.Name, PairingCode: input.PairingCode})
+	reader, err := libs.SumupClient.Readers.Create(context.Background(), libs.SumupMerchant.MerchantCode, sumup.ReadersCreateParams{Name: input.Name, PairingCode: input.PairingCode})
 	if err != nil {
 		errMsg := libs.FormatSumUpError(err)
 		fmt.Printf("error while creating reader: %s\n", errMsg)
@@ -227,7 +227,7 @@ func UnlinkReader(c *gin.Context) {
 			return
 		}
 
-		unlinkErr := libs.SumupClient.Readers.Delete(context.Background(), libs.SumupMerchant.MerchantCode, readers.ReaderID(dbReader.ReaderId))
+		unlinkErr := libs.SumupClient.Readers.Delete(context.Background(), libs.SumupMerchant.MerchantCode, sumup.ReaderID(dbReader.ReaderId))
 		if unlinkErr != nil {
 			fmt.Printf("error while unlinking reader by name: %s\n", unlinkErr.Error())
 			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": unlinkErr.Error()})
@@ -239,7 +239,7 @@ func UnlinkReader(c *gin.Context) {
 			return
 		}
 	} else if input.ReaderId != "" && input.ReaderName == "" { // name undefined
-		unlinkErr := libs.SumupClient.Readers.Delete(context.Background(), libs.SumupMerchant.MerchantCode, readers.ReaderID(input.ReaderId))
+		unlinkErr := libs.SumupClient.Readers.Delete(context.Background(), libs.SumupMerchant.MerchantCode, sumup.ReaderID(input.ReaderId))
 		if unlinkErr != nil {
 			fmt.Printf("error while unlinking reader by id: %s\n", unlinkErr.Error())
 			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": unlinkErr.Error()})
@@ -267,7 +267,7 @@ func DeleteReader(c *gin.Context) {
 		return
 	}
 
-	unlinkErr := libs.SumupClient.Readers.Delete(context.Background(), libs.SumupMerchant.MerchantCode, readers.ReaderID(reader.ReaderId))
+	unlinkErr := libs.SumupClient.Readers.Delete(context.Background(), libs.SumupMerchant.MerchantCode, sumup.ReaderID(reader.ReaderId))
 	if unlinkErr != nil {
 		fmt.Printf("error while unlinking reader by id: %s\n", unlinkErr.Error())
 		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": unlinkErr.Error()})

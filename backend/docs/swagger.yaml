@@ -243,11 +243,14 @@ definitions:
       used_at:
         type: string
     type: object
-  readers.Create:
+  sumup.Metadata:
+    additionalProperties: {}
+    type: object
+  sumup.ReadersCreateParams:
     properties:
       metadata:
         allOf:
-        - $ref: '#/definitions/shared.Metadata'
+        - $ref: '#/definitions/sumup.Metadata'
         description: |-
           Set of user-defined key-value pairs attached to the object. Partial updates are not supported. When updating, always
           submit whole metadata. Maximum of 64 parameters are allowed in the object.
@@ -264,9 +267,6 @@ definitions:
           Min length: 8
           Max length: 9
         type: string
-    type: object
-  shared.Metadata:
-    additionalProperties: {}
     type: object
   v1.CreateItemInput:
     properties:
@@ -652,7 +652,7 @@ paths:
         name: user
         required: true
         schema:
-          $ref: '#/definitions/readers.Create'
+          $ref: '#/definitions/sumup.ReadersCreateParams'
       produces:
       - application/json
       responses:

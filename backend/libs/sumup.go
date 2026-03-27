@@ -12,13 +12,10 @@ import (
 
 	"github.com/sumup/sumup-go"
 	"github.com/sumup/sumup-go/client"
-	"github.com/sumup/sumup-go/merchants"
-	"github.com/sumup/sumup-go/readers"
-	"github.com/sumup/sumup-go/shared"
 )
 
 var (
-	SumupMerchant *merchants.Merchant
+	SumupMerchant *sumup.Merchant
 	SumupClient   *sumup.Client
 )
 
@@ -30,7 +27,7 @@ func Login(apiKey string, merchantId string) {
 		panic(err.Error())
 	}
 
-	merchant, err := SumupClient.Merchants.Get(context.Background(), merchantId, merchants.GetParams{}) //this is why we need the merchant id. there is no way to check what merchant we currently are (i guess?)
+	merchant, err := SumupClient.Merchants.Get(context.Background(), merchantId, sumup.MerchantsGetParams{}) //this is why we need the merchant id. there is no way to check what merchant we currently are (i guess?)
 	if err != nil {
 		fmt.Printf("[ERROR] SumUp API: Error getting merchant account: %s\n", err.Error())
 		updatedSettings := models.Settings{MaintenanceMode: settings.MaintenanceMode, DefaultReaderId: settings.DefaultReaderId, MerchantInfo: nil}
@@ -82,7 +79,7 @@ func InitAPIReaders() {
 
 func StartReaderCheckout(ReaderId string, TotalAmount uint, Description *string) (ClientTransactionID string, Error error) {
 	returnUrl := os.Getenv("SUMUP_RETURN_URL")
-	response, checkoutErr := SumupClient.Readers.CreateCheckout(context.Background(), SumupMerchant.MerchantCode, ReaderId, readers.CreateCheckout{Description: Description, ReturnURL: &returnUrl, TotalAmount: readers.CreateCheckoutTotalAmount{Currency: "EUR", MinorUnit: 2, Value: int(TotalAmount)}})
+	response, checkoutErr := SumupClient.Readers.CreateCheckout(context.Background(), SumupMerchant.MerchantCode, ReaderId, sumup.ReadersCreateCheckoutParams{Description: Description, ReturnURL: &returnUrl, TotalAmount: sumup.CreateCheckoutRequestTotalAmount{Currency: "EUR", MinorUnit: 2, Value: int(TotalAmount)}})
 	if checkoutErr != nil {
 		return "error", checkoutErr
 	}
@@ -95,12 +92,12 @@ func InitiallyCheckIfReaderIsReady(ReaderId string) (Result *sumupmodels.Reader,
 	secondsBetween := 5
 	for i := 0; i <= count; i++ {
 		time.Sleep(time.Second * time.Duration(secondsBetween))
-		reader, err := SumupClient.Readers.Get(context.Background(), SumupMerchant.MerchantCode, readers.ReaderID(ReaderId), readers.GetParams{})
+		reader, err := SumupClient.Readers.Get(context.Background(), SumupMerchant.MerchantCode, sumup.ReaderID(ReaderId), sumup.ReadersGetParams{})
 		if err != nil {
 			fmt.Printf("[ERROR] SumUp API: Error getting reader %s (Iteration %d/%d): %s\n", ReaderId, i, count, err.Error())
 			continue
 		}
-		if reader.Status != readers.ReaderStatusPaired {
+		if reader.Status != sumup.ReaderStatusPaired {
 			editedReader := sumupmodels.Reader{Status: sumupmodels.ReaderStatus(reader.Status)}
 			models.DB.Where(&sumupmodels.Reader{ReaderId: sumupmodels.ReaderId(ReaderId)}).Updates(editedReader)
 			fmt.Printf("[INFO] SumUp API: Reader %s not ready (Iteration %d/%d)\n", ReaderId, i, count)
@@ -121,12 +118,12 @@ func InitiallyCheckIfReaderIsReady(ReaderId string) (Result *sumupmodels.Reader,
 }
 
 func CheckIfReaderIsReady(ReaderId string) (IsReady bool, Error error) {
-	reader, err := SumupClient.Readers.Get(context.Background(), SumupMerchant.MerchantCode, readers.ReaderID(ReaderId), readers.GetParams{})
+	reader, err := SumupClient.Readers.Get(context.Background(), SumupMerchant.MerchantCode, sumup.ReaderID(ReaderId), sumup.ReadersGetParams{})
 	if err != nil {
 		fmt.Printf("[ERROR] SumUp API: Error getting reader %s: %s\n", ReaderId, err.Error())
 		return false, err
 	}
-	if reader.Status != readers.ReaderStatusPaired {
+	if reader.Status != sumup.ReaderStatusPaired {
 		fmt.Printf("[INFO] SumUp API: Reader %s not ready\n", ReaderId)
 		return false, fmt.Errorf("reader is not ready")
 	}
@@ -139,11 +136,11 @@ func CheckIfReaderIsReady(ReaderId string) (IsReady bool, Error error) {
 // FormatSumUpError formats SumUp API errors with dereferenced pointer values for better readability
 func FormatSumUpError(err error) string {
 	// handle specific reader checkout errors
-	var readerErr *readers.CreateReaderCheckoutUnprocessableEntity
+	var readerErr *sumup.CreateReaderCheckoutUnprocessableEntity
 	if errors.As(err, &readerErr) {
 		if len(readerErr.Errors) > 0 {
 			for _, errDetail := range readerErr.Errors {
-				if problemDetail, ok := errDetail.(*shared.Problem); ok {
+				if problemDetail, ok := errDetail.(*sumup.Problem); ok {
 					detail := ""
 					if problemDetail.Detail != nil {
 						detail = *problemDetail.Detail
@@ -155,8 +152,8 @@ func FormatSumUpError(err error) string {
 		}
 	}
 
-	// handle generic shared.Problem errors
-	var problem *shared.Problem
+	// handle generic sumup.Problem errors
+	var problem *sumup.Problem
 	if errors.As(err, &problem) {
 		detail := "<nil>"
 		if problem.Detail != nil {
