@@ -31,4 +31,6 @@ func RegisterRoutesV1(r *gin.RouterGroup) {
 
 	s := r.Group("settings")
 	s.GET("", adminv1.FindSettings)
+
+	r.GET("/ready", GetReadiness)
 }
