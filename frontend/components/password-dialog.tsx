@@ -13,9 +13,10 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { LockIcon, UserIcon } from "lucide-react";
+import { LockIcon, UserIcon, Eye, EyeOff, Delete } from "lucide-react";
 import { useAuth } from "./auth-context";
 import { User } from "./user-context";
+import { useSettings } from "./settings-context";
 
 export default function PasswordDialog({
   open,
@@ -36,7 +37,7 @@ export default function PasswordDialog({
   redirect?: boolean;
   onSuccess?: () => void;
   onValidate?: (
-    user: User | null
+    user: User | null,
   ) => Promise<{ isValid: boolean; error?: string }>;
   passwordInputMode?:
     | "text"
@@ -52,12 +53,20 @@ export default function PasswordDialog({
   const [password, setPassword] = React.useState("");
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState("");
+  const [showPassword, setShowPassword] = React.useState(false);
+  const { settings } = useSettings();
+  const showNumpad = settings?.ui_settings?.showNumpad ?? true;
 
   React.useEffect(() => {
-    if (username) {
-      setLocalUsername(username);
-    } else {
-      setLocalUsername("");
+    if (open) {
+      if (username) {
+        setLocalUsername(username);
+      } else {
+        setLocalUsername("");
+      }
+      setPassword("");
+      setError("");
+      setShowPassword(false);
     }
   }, [username, open]);
 
@@ -90,7 +99,7 @@ export default function PasswordDialog({
     } catch (err) {
       console.error("Login error:", err);
       setError(
-        err instanceof Error ? err.message : "Network error. Please try again."
+        err instanceof Error ? err.message : "Network error. Please try again.",
       );
     } finally {
       setLoading(false);
@@ -139,16 +148,66 @@ export default function PasswordDialog({
                 <LockIcon className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <Input
                   id="password-icon"
-                  type="password"
+                  type={showPassword ? "text" : "password"}
                   placeholder="Enter password"
-                  className="pl-10"
+                  className="pl-10 pr-10"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   disabled={loading}
                   inputMode={passwordInputMode}
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  disabled={loading}
+                >
+                  {showPassword ? (
+                    <EyeOff className="h-4 w-4" />
+                  ) : (
+                    <Eye className="h-4 w-4" />
+                  )}
+                </button>
               </div>
             </div>
+            {showNumpad && (
+              <div className="flex flex-col gap-2">
+                <div className="grid grid-cols-3 gap-2 w-full max-w-sm">
+                  {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((num) => (
+                    <Button
+                      key={num}
+                      type="button"
+                      variant="outline"
+                      onClick={() => setPassword(password + num)}
+                      disabled={loading}
+                      className="h-14 text-lg"
+                    >
+                      {num}
+                    </Button>
+                  ))}
+                </div>
+                <div className="grid grid-cols-3 gap-2 w-full max-w-sm">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setPassword(password + "0")}
+                    disabled={loading}
+                    className="col-span-2 h-14 text-lg"
+                  >
+                    0
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setPassword(password.slice(0, -1))}
+                    disabled={loading}
+                    className="h-14"
+                  >
+                    <Delete className="h-5 w-5" />
+                  </Button>
+                </div>
+              </div>
+            )}
           </div>
           {error && <div className="text-red-500 text-sm mb-2">{error}</div>}
           <DialogFooter>
