@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import JsBarcode from "jsbarcode";
 import {
   Dialog,
   DialogContent,
@@ -54,6 +55,7 @@ export default function SettingsDialog({
   const [updating, setUpdating] = React.useState(false);
   const [loginBarcode, setLoginBarcode] = React.useState<string>("");
   const [refreshingBarcode, setRefreshingBarcode] = React.useState(false);
+  const barcodeCanvasRef = React.useRef<HTMLCanvasElement>(null);
 
   const isControlled = controlledOpen !== undefined;
   const open = isControlled ? controlledOpen : internalOpen;
@@ -62,6 +64,21 @@ export default function SettingsDialog({
     : setInternalOpen;
 
   const isAdmin = user?.is_admin;
+
+  React.useEffect(() => {
+    if (loginBarcode && barcodeCanvasRef.current) {
+      try {
+        JsBarcode(barcodeCanvasRef.current, loginBarcode, {
+          format: "EAN13",
+          width: 2,
+          height: 50,
+          displayValue: true,
+        });
+      } catch (error) {
+        console.error("Failed to render barcode:", error);
+      }
+    }
+  }, [loginBarcode]);
 
   const handleMaintenanceToggle = async (enabled: boolean) => {
     if (isEnvMaintenance) return;
@@ -85,14 +102,14 @@ export default function SettingsDialog({
       await refreshSettings();
 
       toast.success(
-        `Maintenance mode ${enabled ? "enabled" : "disabled"} successfully`
+        `Maintenance mode ${enabled ? "enabled" : "disabled"} successfully`,
       );
     } catch (error) {
       console.error("Failed to update maintenance mode:", error);
       toast.error(
         error instanceof Error
           ? error.message
-          : "Failed to update maintenance mode"
+          : "Failed to update maintenance mode",
       );
     } finally {
       setUpdating(false);
@@ -127,7 +144,7 @@ export default function SettingsDialog({
       toast.error(
         error instanceof Error
           ? error.message
-          : "Failed to generate login barcode"
+          : "Failed to generate login barcode",
       );
     } finally {
       setRefreshingBarcode(false);
@@ -219,6 +236,11 @@ export default function SettingsDialog({
               <p className="text-xs text-muted-foreground">
                 Generate a barcode to log in with a scanner
               </p>
+              {loginBarcode && (
+                <div className="mt-3 flex justify-center p-4 bg-muted rounded-lg">
+                  <canvas ref={barcodeCanvasRef} />
+                </div>
+              )}
             </div>
 
             {user && (
