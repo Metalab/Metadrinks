@@ -577,6 +577,8 @@ export function PaymentDialog({
   onComplete,
 }: PaymentDialogProps) {
   const { settings } = useSettings();
+  const [isOpen, setIsOpen] = useState(false);
+  const [isSelectingMethod, setIsSelectingMethod] = useState(false);
   const [selected, setSelected] = useState<KnownMethod | undefined>(
     (method as KnownMethod) ?? undefined,
   );
@@ -597,11 +599,34 @@ export function PaymentDialog({
   const isCardAvailable = !!settings?.default_reader_id;
   const isBalanceTopUp = amountInCents !== undefined;
 
+  const handleDialogOpenChange = (open: boolean) => {
+    if (!open) {
+      setIsSelectingMethod(false);
+    }
+
+    if (open) {
+      setIsSelectingMethod(false);
+    }
+
+    setIsOpen(open);
+  };
+
+  const handleSelectMethod = (nextMethod: KnownMethod) => {
+    if (isSelectingMethod) return;
+    setIsSelectingMethod(true);
+    setSelected(nextMethod);
+  };
+
   return (
-    <Dialog>
+    <Dialog open={isOpen} onOpenChange={handleDialogOpenChange}>
       {trigger ? <DialogTrigger asChild>{trigger}</DialogTrigger> : null}
 
-      <DialogContent className="sm:max-w-[480px]">
+      <DialogContent
+        className="sm:max-w-[480px]"
+        showCloseButton={false}
+        onPointerDownOutside={(e) => e.preventDefault()}
+        onEscapeKeyDown={(e) => e.preventDefault()}
+      >
         {!selected ? (
           <div>
             <DialogHeader>
@@ -611,10 +636,15 @@ export function PaymentDialog({
               </DialogDescription>
             </DialogHeader>
             <div className="grid gap-3 py-4">
-              <Button onClick={() => setSelected("cash")}>Cash</Button>
               <Button
-                onClick={() => setSelected("card")}
-                disabled={!isCardAvailable}
+                onClick={() => handleSelectMethod("cash")}
+                disabled={isSelectingMethod}
+              >
+                Cash
+              </Button>
+              <Button
+                onClick={() => handleSelectMethod("card")}
+                disabled={!isCardAvailable || isSelectingMethod}
               >
                 Card
                 {!isCardAvailable && (
@@ -624,7 +654,12 @@ export function PaymentDialog({
                 )}
               </Button>
               {!isBalanceTopUp && (
-                <Button onClick={() => setSelected("balance")}>Balance</Button>
+                <Button
+                  onClick={() => handleSelectMethod("balance")}
+                  disabled={isSelectingMethod}
+                >
+                  Balance
+                </Button>
               )}
             </div>
             {!isCardAvailable && (
