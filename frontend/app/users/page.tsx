@@ -7,12 +7,14 @@ import { Separator } from "@/components/ui/separator";
 import UserCards from "@/components/user-cards";
 import { useAuth } from "@/components/auth-context";
 import { useContentUpdates } from "@/hooks/use-sse-events";
+import { useIdleTimeout } from "@/hooks/use-idle-timeout";
 import { PlusIcon, SearchIcon } from "lucide-react";
 import { UserDialog } from "@/components/user-dialog";
 import { BarcodeSearchInput } from "@/components/search-barcode-input";
 import { Spinner } from "@/components/ui/spinner";
 
 export default function Users() {
+  useIdleTimeout();
   const [search, setSearch] = useState("");
   const [guestLoading, setGuestLoading] = useState(false);
   const [userDialogOpen, setUserDialogOpen] = useState(false);

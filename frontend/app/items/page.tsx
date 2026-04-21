@@ -5,10 +5,12 @@ import ItemCards from "@/components/item-cards";
 import { BarcodeSearchInput } from "@/components/search-barcode-input";
 import { useSelectedItems } from "@/components/selected-items-context";
 import { useContentUpdates } from "@/hooks/use-sse-events";
+import { useIdleTimeout } from "@/hooks/use-idle-timeout";
 import { config } from "@/lib/config";
 import { Item } from "@/types/item";
 
 export default function ItemsPage() {
+  useIdleTimeout();
   const [items, setItems] = useState<Item[]>([]);
   const [loading, setLoading] = useState(true);
   const { addItem } = useSelectedItems();
