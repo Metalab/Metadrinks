@@ -19,6 +19,7 @@ export default function RootLayoutClient({
 }>) {
   const pathname = usePathname();
   const isMaintenancePage = pathname === "/maintenance";
+  const isHomePage = pathname === "/";
 
   return (
     <ThemeProvider
@@ -34,7 +35,7 @@ export default function RootLayoutClient({
             <SSEProvider>
               <MaintenanceGuard>
                 <div className="flex flex-col h-screen">
-                  <Header showSidebarTrigger={false} />
+                  {!isHomePage && <Header showSidebarTrigger={false} />}
                   <div className="flex-1">{children}</div>
                 </div>
               </MaintenanceGuard>

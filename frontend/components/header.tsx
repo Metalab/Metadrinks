@@ -51,7 +51,7 @@ export default function Header({ showSidebarTrigger = false }: HeaderProps) {
                         href="/admin"
                         className={cn(
                           isActive("/admin") &&
-                            "font-semibold underline underline-offset-4"
+                            "font-semibold underline underline-offset-4",
                         )}
                       >
                         Home
@@ -64,7 +64,7 @@ export default function Header({ showSidebarTrigger = false }: HeaderProps) {
                         href="/admin/items"
                         className={cn(
                           isActive("/admin/items") &&
-                            "font-semibold underline underline-offset-4"
+                            "font-semibold underline underline-offset-4",
                         )}
                       >
                         Items
@@ -77,7 +77,7 @@ export default function Header({ showSidebarTrigger = false }: HeaderProps) {
                         href="/admin/users"
                         className={cn(
                           isActive("/admin/users") &&
-                            "font-semibold underline underline-offset-4"
+                            "font-semibold underline underline-offset-4",
                         )}
                       >
                         Users
@@ -90,7 +90,7 @@ export default function Header({ showSidebarTrigger = false }: HeaderProps) {
                         href="/admin/purchases"
                         className={cn(
                           isActive("/admin/purchases") &&
-                            "font-semibold underline underline-offset-4"
+                            "font-semibold underline underline-offset-4",
                         )}
                       >
                         Purchases
@@ -103,7 +103,7 @@ export default function Header({ showSidebarTrigger = false }: HeaderProps) {
                         href="/admin/readers"
                         className={cn(
                           isActive("/admin/readers") &&
-                            "font-semibold underline underline-offset-4"
+                            "font-semibold underline underline-offset-4",
                         )}
                       >
                         Readers
@@ -116,13 +116,13 @@ export default function Header({ showSidebarTrigger = false }: HeaderProps) {
                   <NavigationMenuItem>
                     <NavigationMenuLink asChild>
                       <Link
-                        href="/"
+                        href="/users"
                         className={cn(
-                          isActive("/") &&
-                            "font-semibold underline underline-offset-4"
+                          isActive("/users") &&
+                            "font-semibold underline underline-offset-4",
                         )}
                       >
-                        Home
+                        Users
                       </Link>
                     </NavigationMenuLink>
                   </NavigationMenuItem>
@@ -132,7 +132,7 @@ export default function Header({ showSidebarTrigger = false }: HeaderProps) {
                         href="/items"
                         className={cn(
                           isActive("/items") &&
-                            "font-semibold underline underline-offset-4"
+                            "font-semibold underline underline-offset-4",
                         )}
                       >
                         Items
