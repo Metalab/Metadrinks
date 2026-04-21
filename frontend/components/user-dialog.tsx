@@ -13,7 +13,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import {Dispatch, SetStateAction, SubmitEvent} from "react";
+import { Dispatch, SetStateAction, SubmitEvent } from "react";
 import { useRouter } from "next/navigation";
 import { config } from "@/lib/config";
 
@@ -106,15 +106,13 @@ export function UserDialog({
                 />
               </div>
             </div>
-            <DialogFooter className="flex justify-between">
+            <DialogFooter className="flex justify-between mt-3">
               <DialogClose asChild>
                 <Button type="button" variant="outline">
                   Cancel
                 </Button>
               </DialogClose>
-              <Button type="submit">
-                Create
-              </Button>
+              <Button type="submit">Create</Button>
             </DialogFooter>
           </form>
         </DialogContent>
