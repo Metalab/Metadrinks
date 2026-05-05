@@ -1,36 +1,25 @@
 "use client";
 
-import { useAuth } from "@/components/auth-context";
 import { useUser } from "@/components/user-context";
+import { useAuth } from "@/components/auth-context";
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
 import { config } from "@/lib/config";
 import { Button } from "@/components/ui/button";
 import ItemDialog from "@/components/item-admin-dialog";
 import ItemCards from "@/components/item-cards";
 import { useContentUpdates } from "@/hooks/use-sse-events";
+import { useAdminProtection } from "@/hooks/use-admin-protection";
 import { PlusIcon } from "lucide-react";
 import { Item } from "@/types/item";
 
 export default function AdminItemsPage() {
+  useAdminProtection();
   const { loggedIn } = useAuth();
   const { user } = useUser();
-  const router = useRouter();
   const [items, setItems] = useState<Item[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedItem, setSelectedItem] = useState<Item | null>(null);
-
-  useEffect(() => {
-    if (!loggedIn) {
-      router.push("/admin");
-      return;
-    }
-
-    if (user && !user.is_admin) {
-      router.push("/admin");
-    }
-  }, [loggedIn, user, router]);
 
   useEffect(() => {
     fetchItems();

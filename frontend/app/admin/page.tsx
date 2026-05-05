@@ -5,16 +5,21 @@ import { useState, useEffect } from "react";
 import PasswordDialog from "@/components/password-dialog";
 
 export default function AdminPage() {
-  const { loggedIn, logout } = useAuth();
+  const { loggedIn, isInitialized, logout } = useAuth();
   const { user } = useUser();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [errorMessage, setErrorMessage] = useState(
-    "Please log in with an admin account to access this page."
+    "Please log in with an admin account to access this page.",
   );
 
   useEffect(() => {
+    if (!isInitialized) {
+      return;
+    }
+
     if (loggedIn && user) {
       if (!user.is_admin) {
+        logout(false);
         setDialogOpen(true);
       } else {
         setDialogOpen(false);
@@ -22,7 +27,7 @@ export default function AdminPage() {
     } else if (!loggedIn) {
       setDialogOpen(true);
     }
-  }, [loggedIn, user]);
+  }, [isInitialized, loggedIn, user]);
 
   const handleValidation = async (userData: User | null) => {
     // user data is passed from login response
@@ -36,7 +41,7 @@ export default function AdminPage() {
     if (!userData.is_admin) {
       logout(false);
       setErrorMessage(
-        "Access denied. You must be an admin to access this page."
+        "Access denied. You must be an admin to access this page.",
       );
       setDialogOpen(true);
       return {

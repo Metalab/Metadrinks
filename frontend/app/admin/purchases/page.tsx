@@ -1,32 +1,21 @@
 "use client";
 
-import { useAuth } from "@/components/auth-context";
 import { useUser } from "@/components/user-context";
+import { useAuth } from "@/components/auth-context";
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
 import { config } from "@/lib/config";
 import { useContentUpdates } from "@/hooks/use-sse-events";
+import { useAdminProtection } from "@/hooks/use-admin-protection";
 import { columns } from "./columns";
 import { DataTable } from "./data-table";
 import { Purchase } from "@/types/purchase";
 
 export default function AdminPurchasesPage() {
+  useAdminProtection();
   const { loggedIn } = useAuth();
   const { user } = useUser();
-  const router = useRouter();
   const [purchases, setPurchases] = useState<Purchase[]>([]);
   const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    if (!loggedIn) {
-      router.push("/admin");
-      return;
-    }
-
-    if (user && !user.is_admin) {
-      router.push("/admin");
-    }
-  }, [loggedIn, user, router]);
 
   useEffect(() => {
     fetchPurchases();

@@ -3,34 +3,23 @@
 import { useAuth } from "@/components/auth-context";
 import { User, useUser } from "@/components/user-context";
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
 import { config } from "@/lib/config";
 import { Button } from "@/components/ui/button";
 import UserAdminDialog from "@/components/user-admin-dialog";
 import { useContentUpdates } from "@/hooks/use-sse-events";
+import { useAdminProtection } from "@/hooks/use-admin-protection";
 import { PlusIcon } from "lucide-react";
 import { columns } from "./columns";
 import { DataTable } from "./data-table";
 
 export default function AdminUsersPage() {
+  useAdminProtection();
   const { loggedIn } = useAuth();
   const { user } = useUser();
-  const router = useRouter();
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
-
-  useEffect(() => {
-    if (!loggedIn) {
-      router.push("/admin");
-      return;
-    }
-
-    if (user && !user.is_admin) {
-      router.push("/admin");
-    }
-  }, [loggedIn, user, router]);
 
   useEffect(() => {
     fetchUsers();

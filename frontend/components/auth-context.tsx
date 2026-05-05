@@ -5,14 +5,41 @@ import { useRouter } from "next/navigation";
 import { config } from "@/lib/config";
 import { useUser, User } from "@/components/user-context";
 
+function decodeJWT(token: string): Record<string, any> | null {
+  try {
+    const parts = token.split(".");
+    if (parts.length !== 3) return null;
+
+    const payload = parts[1];
+    const decoded = JSON.parse(Buffer.from(payload, "base64").toString());
+    return decoded;
+  } catch {
+    return null;
+  }
+}
+
+function getTokenFromCookie(): string | null {
+  if (typeof document === "undefined") return null;
+
+  const cookies = document.cookie.split(";");
+  for (const cookie of cookies) {
+    const [name, value] = cookie.trim().split("=");
+    if (name === "drinks_pos_session") {
+      return decodeURIComponent(value);
+    }
+  }
+  return null;
+}
+
 interface AuthContextType {
   loggedIn: boolean;
+  isInitialized: boolean;
   expiresIn: number | null;
   login: (
     username: string,
     password?: string,
     redirect?: boolean,
-    login_barcode?: string
+    login_barcode?: string,
   ) => Promise<User | null>;
   logout: (redirect?: boolean) => void;
   enableAutoRefresh: (enabled: boolean) => void;
@@ -22,10 +49,48 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [loggedIn, setLoggedIn] = useState(false);
+  const [isInitialized, setIsInitialized] = useState(false);
   const [expiresIn, setExpiresIn] = useState<number | null>(null);
   const [autoRefreshEnabled, setAutoRefreshEnabled] = useState(false);
   const router = useRouter();
   const { setUser } = useUser();
+
+  // restore auth state from localStoage
+  useEffect(() => {
+    const exp = localStorage.getItem("session_exp");
+    if (exp) {
+      const expTime = parseInt(exp, 10);
+      const now = Date.now();
+      const diff = Math.max(0, Math.floor((expTime - now) / 1000));
+
+      if (diff > 0) {
+        setLoggedIn(true);
+
+        const token = getTokenFromCookie();
+        if (token) {
+          const decoded = decodeJWT(token);
+          if (decoded) {
+            const userData: User = {
+              id: decoded.userId || "",
+              name: decoded.sub || "",
+              balance: 0,
+              is_active: true,
+              is_trusted: decoded.trusted || false,
+              is_restricted: decoded.restricted || false,
+              is_admin: decoded.admin || false,
+            };
+            setUser(userData);
+          }
+        }
+      } else {
+        localStorage.removeItem("session_exp");
+        setLoggedIn(false);
+      }
+    } else {
+      setLoggedIn(false);
+    }
+    setIsInitialized(true);
+  }, []);
 
   // countdown logic
   useEffect(() => {
@@ -79,13 +144,16 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           }
           router.push("/");
         } else {
-          setLoggedIn(document.cookie.includes("drinks_pos_session="));
+          setLoggedIn(true);
 
           if (autoRefreshEnabled && diff > 60 && refreshTimeout === null) {
-            refreshTimeout = setTimeout(() => {
-              refresh();
-              refreshTimeout = null;
-            }, (diff - 60) * 1000);
+            refreshTimeout = setTimeout(
+              () => {
+                refresh();
+                refreshTimeout = null;
+              },
+              (diff - 60) * 1000,
+            );
           }
         }
       } else {
@@ -110,7 +178,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     username: string,
     password?: string,
     redirect: boolean = true,
-    login_barcode?: string
+    login_barcode?: string,
   ): Promise<User | null> => {
     try {
       const body: {
@@ -189,7 +257,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   return (
     <AuthContext.Provider
-      value={{ loggedIn, expiresIn, login, logout, enableAutoRefresh }}
+      value={{
+        loggedIn,
+        isInitialized,
+        expiresIn,
+        login,
+        logout,
+        enableAutoRefresh,
+      }}
     >
       {children}
     </AuthContext.Provider>

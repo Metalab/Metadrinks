@@ -1,11 +1,11 @@
 "use client";
 
-import { useAuth } from "@/components/auth-context";
 import { useUser } from "@/components/user-context";
+import { useAuth } from "@/components/auth-context";
 import { useEffect, useState, useRef } from "react";
-import { useRouter } from "next/navigation";
 import { config } from "@/lib/config";
 import { useContentUpdates } from "@/hooks/use-sse-events";
+import { useAdminProtection } from "@/hooks/use-admin-protection";
 import { createColumns } from "./columns";
 import { DataTable } from "./data-table";
 import { Reader } from "@/types/reader";
@@ -18,27 +18,16 @@ import { Spinner } from "@/components/ui/spinner";
 import { DeleteReaderDialog } from "@/components/delete-reader-dialog";
 
 export default function AdminReadersPage() {
+  useAdminProtection();
   const { loggedIn } = useAuth();
   const { user } = useUser();
   const { settings, refreshSettings } = useSettings();
-  const router = useRouter();
   const [readers, setReaders] = useState<Reader[]>([]);
   const [loading, setLoading] = useState(true);
   const [linkDialogOpen, setLinkDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [readerToDelete, setReaderToDelete] = useState<Reader | null>(null);
   const hasFetchedRef = useRef(false);
-
-  useEffect(() => {
-    if (!loggedIn) {
-      router.push("/admin");
-      return;
-    }
-
-    if (user && !user.is_admin) {
-      router.push("/admin");
-    }
-  }, [loggedIn, user, router]);
 
   useEffect(() => {
     if (!hasFetchedRef.current) {
