@@ -13,11 +13,11 @@ type Item struct {
 	ProductName    string          `json:"name" gorm:"uniqueIndex:name_variant_volume_idx"`
 	ProductVariant string          `json:"variant,omitempty" gorm:"uniqueIndex:name_variant_volume_idx"`
 	Image          string          `json:"image,omitempty"`
-	Volume         uint            `json:"volume" gorm:"uniqueIndex:name_variant_volume_idx"` //in ml
-	Price          uint            `json:"price"`
-	Amount         uint            `json:"amount,omitempty" gorm:"-"` //do not write this to db - it is only used when creating a purchase
-	Barcodes       pq.StringArray  `json:"barcodes,omitempty" gorm:"type:bytes;serializer:gob"`
-	NutritionInfo  []NutritionInfo `json:"nutrition_info,omitempty" gorm:"type:bytes;serializer:gob"`
+	Volume         uint            `json:"volume" gorm:"uniqueIndex:name_variant_volume_idx"` // in ml
+	Price          uint            `json:"price"`                                             // price we are selling for
+	Amount         uint            `json:"amount,omitempty" gorm:"-"`                         // do not write this to db - it is only used when creating a purchase
+	Barcodes       pq.StringArray  `json:"barcodes,omitempty" gorm:"type:jsonb;serializer:json"`
+	NutritionInfo  []NutritionInfo `json:"nutrition_info,omitempty" gorm:"type:jsonb;serializer:json"`
 	IsActive       *bool           `json:"is_active" gorm:"default:true"`
 	CreatedAt      time.Time       `json:"-"`
 	DeletedAt      gorm.DeletedAt  `json:"deleted_at,omitempty"`

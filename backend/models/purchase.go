@@ -10,7 +10,7 @@ import (
 
 type Purchase struct {
 	PurchaseId          uuid.UUID                         `json:"id" gorm:"primaryKey;unique;type:uuid;default:gen_random_uuid()"`
-	Items               []PurchaseItem                    `json:"items,omitempty" gorm:"foreignKey:ItemID;type:bytes;serializer:gob"`
+	Items               []PurchaseItem                    `json:"items,omitempty" gorm:"type:jsonb;serializer:json"`
 	PaymentType         PaymentType                       `json:"payment_type"`
 	TransactionStatus   sumupmodels.TransactionFullStatus `json:"status"`
 	ClientTransactionId string                            `json:"client_transaction_id,omitempty"`
