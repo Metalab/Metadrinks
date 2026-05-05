@@ -27,7 +27,7 @@ export default function AdminPage() {
     } else if (!loggedIn) {
       setDialogOpen(true);
     }
-  }, [isInitialized, loggedIn, user]);
+  }, [isInitialized, loggedIn, user, logout]);
 
   const handleValidation = async (userData: User | null) => {
     // user data is passed from login response
@@ -64,6 +64,8 @@ export default function AdminPage() {
         disableClose={true}
         redirect={false}
         onValidate={handleValidation}
+        showNumpad={false}
+        showCancel={false}
       />
       {loggedIn && user?.is_admin && (
         <main className="flex flex-col items-center gap-8">

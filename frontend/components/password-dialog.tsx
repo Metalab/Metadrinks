@@ -28,6 +28,8 @@ export default function PasswordDialog({
   onSuccess,
   onValidate,
   passwordInputMode = "text",
+  showNumpad = true,
+  showCancel = true,
 }: {
   open: boolean;
   setOpen: (open: boolean) => void;
@@ -48,6 +50,8 @@ export default function PasswordDialog({
     | "email"
     | "url"
     | "none";
+  showNumpad?: boolean;
+  showCancel?: boolean;
 }) {
   const [localUsername, setLocalUsername] = React.useState("");
   const [password, setPassword] = React.useState("");
@@ -55,7 +59,7 @@ export default function PasswordDialog({
   const [error, setError] = React.useState("");
   const [showPassword, setShowPassword] = React.useState(false);
   const { settings } = useSettings();
-  const showNumpad = settings?.ui_settings?.showNumpad ?? true;
+  showNumpad = showNumpad ?? settings?.ui_settings?.showNumpad ?? true;
 
   React.useEffect(() => {
     if (open) {
@@ -211,11 +215,13 @@ export default function PasswordDialog({
           </div>
           {error && <div className="text-red-500 text-sm mb-2">{error}</div>}
           <DialogFooter>
-            <DialogClose asChild>
-              <Button type="button" variant="outline" disabled={loading}>
-                Cancel
-              </Button>
-            </DialogClose>
+            {showCancel && (
+              <DialogClose asChild>
+                <Button type="button" variant="outline" disabled={loading}>
+                  Cancel
+                </Button>
+              </DialogClose>
+            )}
             <Button type="submit" disabled={loading}>
               {loading ? "Logging in..." : "Log in"}
             </Button>

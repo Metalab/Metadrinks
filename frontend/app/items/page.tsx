@@ -43,7 +43,7 @@ export default function ItemsPage() {
         fetchItems();
       }
     },
-    [fetchItems]
+    [fetchItems],
   );
 
   if (loading) {
