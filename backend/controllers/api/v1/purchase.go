@@ -169,14 +169,20 @@ func FindPurchases(c *gin.Context) {
 
 	limit := c.DefaultQuery("limit", "-1")
 	limitInt, err := strconv.Atoi(limit)
+
+	page := c.DefaultQuery("page", "1")
+	pageInt, err := strconv.Atoi(page)
+
+	offsetInt := (pageInt - 1) * limitInt
+
 	if err != nil {
 		c.AbortWithError(http.StatusBadRequest, err)
 		return
 	}
 	if !isAdmin {
-		models.DB.Where("created_by = ?", userId).Order("created_at DESC").Find(&purchases).Limit(limitInt)
+		models.DB.Where("created_by = ?", userId).Order("created_at DESC").Limit(limitInt).Offset(offsetInt).Find(&purchases)
 	} else {
-		models.DB.Order("created_at DESC").Find(&purchases).Limit(limitInt)
+		models.DB.Order("created_at DESC").Limit(limitInt).Offset(offsetInt).Find(&purchases)
 	}
 
 	c.Header("Content-Type", "application/json")
