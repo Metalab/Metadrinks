@@ -14,6 +14,12 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Badge } from "@/components/ui/badge";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import {
   PackageIcon,
   ImageIcon,
@@ -24,6 +30,8 @@ import {
   BeakerIcon,
   ShieldIcon,
   TrashIcon,
+  TagIcon,
+  ChevronDown,
 } from "lucide-react";
 import { config } from "@/lib/config";
 import { Item } from "@/types/item";
@@ -56,6 +64,15 @@ export default function ItemDialog({
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState("");
   const [showDeleteDialog, setShowDeleteDialog] = React.useState(false);
+  const [tags, setTags] = React.useState<string[]>([]);
+  const [isTagsOpen, setIsTagsOpen] = React.useState(false);
+
+  // TODO: make this configurable in backend and fetch from api
+  const availableTags: Record<string, string> = {
+    alcohol: "Alcoholic",
+    caffeine: "Contains Caffeine",
+    "sugar-free": "Sugar Free",
+  };
 
   const isEditMode = !!item?.id;
 
@@ -90,18 +107,19 @@ export default function ItemDialog({
       setPrice(item.price?.toString() || "");
       setIsActive(item.is_active ?? true);
       setBarcodes(
-        item.barcodes && item.barcodes.length > 0 ? item.barcodes : [""]
+        item.barcodes && item.barcodes.length > 0 ? item.barcodes : [""],
       );
       setBarcodeErrors(
         item.barcodes && item.barcodes.length > 0
           ? item.barcodes.map(() => null)
-          : [null]
+          : [null],
       );
       setNutritionInfo(
         item.nutrition_info && item.nutrition_info.length > 0
           ? item.nutrition_info
-          : [{ name: "", value: "" }]
+          : [{ name: "", value: "" }],
       );
+      setTags(item.tags || []);
     } else {
       setName("");
       setVariant("");
@@ -112,6 +130,7 @@ export default function ItemDialog({
       setBarcodes([""]);
       setBarcodeErrors([null]);
       setNutritionInfo([{ name: "", value: "" }]);
+      setTags([]);
     }
     setError("");
   }, [item, open]);
@@ -148,10 +167,22 @@ export default function ItemDialog({
     }
   };
 
+  const handleToggleTag = (tag: string) => {
+    setTags((prevTags) =>
+      prevTags.includes(tag)
+        ? prevTags.filter((t) => t !== tag)
+        : [...prevTags, tag],
+    );
+  };
+
+  const handleRemoveTag = (tag: string) => {
+    setTags(tags.filter((t) => t !== tag));
+  };
+
   const handleNutritionChange = (
     index: number,
     field: "name" | "value",
-    value: string
+    value: string,
   ) => {
     const newNutritionInfo = [...nutritionInfo];
     newNutritionInfo[index][field] = value;
@@ -169,12 +200,12 @@ export default function ItemDialog({
         .filter((b) => b.length > 0);
 
       const invalidBarcodes = filteredBarcodes.filter(
-        (barcode) => validateBarcodeChecksum(barcode) !== null
+        (barcode) => validateBarcodeChecksum(barcode) !== null,
       );
 
       if (invalidBarcodes.length > 0) {
         throw new Error(
-          "Please fix invalid barcodes before submitting. Check the error messages below each barcode field."
+          "Please fix invalid barcodes before submitting. Check the error messages below each barcode field.",
         );
       }
 
@@ -196,6 +227,7 @@ export default function ItemDialog({
         barcodes: filteredBarcodes.length > 0 ? filteredBarcodes : undefined,
         nutrition_info:
           filteredNutritionInfo.length > 0 ? filteredNutritionInfo : undefined,
+        tags: tags,
       };
 
       const url = isEditMode
@@ -214,7 +246,7 @@ export default function ItemDialog({
       if (!res.ok) {
         const data = await res.json();
         throw new Error(
-          data.error || `Failed to ${isEditMode ? "update" : "create"} item`
+          data.error || `Failed to ${isEditMode ? "update" : "create"} item`,
         );
       }
 
@@ -230,12 +262,13 @@ export default function ItemDialog({
       setBarcodes([""]);
       setBarcodeErrors([null]);
       setNutritionInfo([{ name: "", value: "" }]);
+      setTags([]);
     } catch (err) {
       console.error("Item operation error:", err);
       setError(
         err instanceof Error
           ? err.message
-          : "An error occurred. Please try again."
+          : "An error occurred. Please try again.",
       );
     } finally {
       setLoading(false);
@@ -267,7 +300,7 @@ export default function ItemDialog({
       setError(
         err instanceof Error
           ? err.message
-          : "An error occurred. Please try again."
+          : "An error occurred. Please try again.",
       );
     } finally {
       setLoading(false);
@@ -401,6 +434,72 @@ export default function ItemDialog({
             </div>
 
             <div className="grid w-full items-center gap-3">
+              <Label>Tags</Label>
+              <Popover open={isTagsOpen} onOpenChange={setIsTagsOpen}>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    role="combobox"
+                    aria-expanded={isTagsOpen}
+                    className="w-full justify-between"
+                    disabled={loading}
+                  >
+                    <div className="flex items-center gap-2 flex-1">
+                      <TagIcon className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                      {tags.length > 0 ? (
+                        <div className="flex flex-wrap gap-2">
+                          {tags.map((tag) => (
+                            <Badge
+                              key={tag}
+                              variant="secondary"
+                              className="mr-1"
+                            >
+                              {availableTags[tag] || tag + " (?)"}
+                              <span
+                                className="ml-1 inline-flex cursor-pointer"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleRemoveTag(tag);
+                                }}
+                              >
+                                <XIcon className="h-3 w-3" />
+                              </span>
+                            </Badge>
+                          ))}
+                        </div>
+                      ) : (
+                        <span className="text-muted-foreground">
+                          Select tags...
+                        </span>
+                      )}
+                    </div>
+                    <ChevronDown className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-full p-0">
+                  <div className="flex flex-col gap-2 p-3">
+                    {Object.entries(availableTags).map(([key, label]) => (
+                      <div key={key} className="flex items-center gap-2">
+                        <Checkbox
+                          id={`tag-${key}`}
+                          checked={tags.includes(key)}
+                          onCheckedChange={() => handleToggleTag(key)}
+                          disabled={loading}
+                        />
+                        <Label
+                          htmlFor={`tag-${key}`}
+                          className="text-sm font-normal cursor-pointer"
+                        >
+                          {label}
+                        </Label>
+                      </div>
+                    ))}
+                  </div>
+                </PopoverContent>
+              </Popover>
+            </div>
+
+            <div className="grid w-full items-center gap-3">
               <div className="flex items-center justify-between">
                 <Label>Barcodes</Label>
                 <Button
@@ -455,9 +554,6 @@ export default function ItemDialog({
                   )}
                 </div>
               ))}
-              <p className="text-xs text-muted-foreground">
-                Add one or more barcodes for this item
-              </p>
             </div>
 
             <div className="grid w-full items-center gap-3">
@@ -511,9 +607,6 @@ export default function ItemDialog({
                   )}
                 </div>
               ))}
-              <p className="text-xs text-muted-foreground">
-                Add nutrition information for this item
-              </p>
             </div>
           </div>
           {error && <div className="text-red-500 text-sm mb-2">{error}</div>}
@@ -540,8 +633,8 @@ export default function ItemDialog({
                 {loading
                   ? "Saving..."
                   : isEditMode
-                  ? "Update Item"
-                  : "Create Item"}
+                    ? "Update Item"
+                    : "Create Item"}
               </Button>
             </div>
           </DialogFooter>

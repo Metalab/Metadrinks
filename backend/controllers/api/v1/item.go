@@ -19,6 +19,7 @@ type CreateItemInput struct {
 	Image          string                 `json:"image"`
 	Volume         uint                   `json:"volume" binding:"required"`
 	Price          uint                   `json:"price" binding:"required"`
+	Tags           pq.StringArray         `json:"tags"`
 	Barcodes       pq.StringArray         `json:"barcodes"`
 	NutritionInfo  []models.NutritionInfo `json:"nutrition_info"`
 	IsActive       *bool                  `json:"is_active" default:"true"`
@@ -49,7 +50,7 @@ func CreateItem(c *gin.Context) {
 		return
 	}
 
-	item := models.Item{ProductName: input.ProductName, ProductVariant: input.ProductVariant, Image: input.Image, Volume: input.Volume, Price: input.Price, Barcodes: input.Barcodes, NutritionInfo: input.NutritionInfo, IsActive: input.IsActive}
+	item := models.Item{ProductName: input.ProductName, ProductVariant: input.ProductVariant, Image: input.Image, Volume: input.Volume, Price: input.Price, Tags: input.Tags, Barcodes: input.Barcodes, NutritionInfo: input.NutritionInfo, IsActive: input.IsActive}
 	if err := models.DB.Create(&item).Error; err != nil {
 		c.AbortWithStatus(http.StatusBadRequest /*, gin.H{"error": err.Error()}*/)
 		return
@@ -135,6 +136,7 @@ type UpdateItemInput struct {
 	Image          string                 `json:"image,omitempty"`
 	Volume         uint                   `json:"volume,omitempty"`
 	Price          uint                   `json:"price,omitempty"`
+	Tags           pq.StringArray         `json:"tags,omitempty"`
 	Barcodes       pq.StringArray         `json:"barcodes,omitempty"`
 	NutritionInfo  []models.NutritionInfo `json:"nutrition_info,omitempty"`
 	IsActive       *bool                  `json:"is_active,omitempty"`
@@ -171,7 +173,7 @@ func UpdateItem(c *gin.Context) {
 		return
 	}
 
-	updatedItem := models.Item{ProductName: input.ProductName, ProductVariant: input.ProductVariant, Image: input.Image, Volume: input.Volume, Price: input.Price, Barcodes: input.Barcodes, NutritionInfo: input.NutritionInfo, IsActive: input.IsActive}
+	updatedItem := models.Item{ProductName: input.ProductName, ProductVariant: input.ProductVariant, Image: input.Image, Volume: input.Volume, Price: input.Price, Tags: input.Tags, Barcodes: input.Barcodes, NutritionInfo: input.NutritionInfo, IsActive: input.IsActive}
 
 	models.DB.Model(&item).Updates(&updatedItem)
 

@@ -15,6 +15,7 @@ type Item struct {
 	Image          string          `json:"image,omitempty"`
 	Volume         uint            `json:"volume" gorm:"uniqueIndex:name_variant_volume_idx"` // in ml
 	Price          uint            `json:"price"`                                             // price we are selling for
+	Tags           pq.StringArray  `json:"tags,omitempty" gorm:"type:jsonb;serializer:json"`  // describes the item (vegan, sugarfree, etc)
 	Amount         uint            `json:"amount,omitempty" gorm:"-"`                         // do not write this to db - it is only used when creating a purchase
 	Barcodes       pq.StringArray  `json:"barcodes,omitempty" gorm:"type:jsonb;serializer:json"`
 	NutritionInfo  []NutritionInfo `json:"nutrition_info,omitempty" gorm:"type:jsonb;serializer:json"`

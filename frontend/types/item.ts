@@ -7,6 +7,7 @@ export type Item = {
   price: number;
   amount?: number;
   barcodes?: string[];
+  tags?: string[];
   nutrition_info?: NutritionInfo[];
   is_active?: boolean;
 };
