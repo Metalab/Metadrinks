@@ -6,6 +6,6 @@ COPY . .
 RUN go build -o main .
 
 FROM alpine
-RUN apk add --no-cache tzdata
+RUN apk add --no-cache tzdata curl
 COPY --from=builder /app/main ./main
 CMD ["./main"]
