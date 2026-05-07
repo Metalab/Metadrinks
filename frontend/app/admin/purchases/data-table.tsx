@@ -4,7 +4,6 @@ import {
   ColumnDef,
   flexRender,
   getCoreRowModel,
-  getPaginationRowModel,
   getSortedRowModel,
   SortingState,
   useReactTable,
@@ -19,23 +18,41 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
+import { ChevronLeft, ChevronRight } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import React from "react";
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
   data: TData[];
+  pageSize?: number;
+  onLimitChange?: (limit: string) => void;
+  currentLimit?: number;
+  currentPage?: number;
+  onPageChange?: (page: number) => void;
 }
 
 export function DataTable<TData, TValue>({
   columns,
   data,
+  pageSize = 10,
+  onLimitChange,
+  currentLimit,
+  currentPage = 1,
+  onPageChange,
 }: DataTableProps<TData, TValue>) {
   const [sorting, setSorting] = React.useState<SortingState>([]);
+
   const table = useReactTable({
     data,
     columns,
     getCoreRowModel: getCoreRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
     onSortingChange: setSorting,
     getSortedRowModel: getSortedRowModel(),
     state: {
@@ -60,7 +77,7 @@ export function DataTable<TData, TValue>({
                         ? null
                         : flexRender(
                             header.column.columnDef.header,
-                            header.getContext()
+                            header.getContext(),
                           )}
                     </TableHead>
                   );
@@ -83,7 +100,7 @@ export function DataTable<TData, TValue>({
                       <TableCell key={cell.id} className={meta?.className}>
                         {flexRender(
                           cell.column.columnDef.cell,
-                          cell.getContext()
+                          cell.getContext(),
                         )}
                       </TableCell>
                     );
@@ -103,23 +120,49 @@ export function DataTable<TData, TValue>({
           </TableBody>
         </Table>
       </div>
-      <div className="flex items-center justify-center space-x-2 py-4">
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => table.previousPage()}
-          disabled={!table.getCanPreviousPage()}
-        >
-          Previous
-        </Button>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => table.nextPage()}
-          disabled={!table.getCanNextPage()}
-        >
-          Next
-        </Button>
+      <div className="flex items-center justify-between py-4">
+        <div className="flex-1 flex items-center justify-center space-x-2">
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={() => onPageChange?.(Math.max(1, currentPage - 1))}
+            disabled={currentPage <= 1}
+          >
+            <ChevronLeft className="h-4 w-4" />
+          </Button>
+          <span className="text-sm font-medium">
+            Page {currentPage}
+          </span>
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={() => onPageChange?.(currentPage + 1)}
+            disabled={data.length < pageSize}
+          >
+            <ChevronRight className="h-4 w-4" />
+          </Button>
+        </div>
+        {onLimitChange && currentLimit && (
+          <div className="flex items-center gap-2">
+            <label htmlFor="limit-select" className="text-sm font-medium">
+              Items per page:
+            </label>
+            <Select
+              value={currentLimit.toString()}
+              onValueChange={onLimitChange}
+            >
+              <SelectTrigger className="w-[100px]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="10">10</SelectItem>
+                <SelectItem value="25">25</SelectItem>
+                <SelectItem value="50">50</SelectItem>
+                <SelectItem value="100">100</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        )}
       </div>
     </div>
   );

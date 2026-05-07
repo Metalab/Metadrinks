@@ -3,6 +3,7 @@
 import { useUser } from "@/components/user-context";
 import { useAuth } from "@/components/auth-context";
 import { useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { config } from "@/lib/config";
 import { useContentUpdates } from "@/hooks/use-sse-events";
 import { useAdminProtection } from "@/hooks/use-admin-protection";
@@ -14,12 +15,27 @@ export default function AdminPurchasesPage() {
   useAdminProtection();
   const { loggedIn } = useAuth();
   const { user } = useUser();
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const [purchases, setPurchases] = useState<Purchase[]>([]);
   const [loading, setLoading] = useState(true);
+  const [limit, setLimit] = useState<number>(25);
+  const [page, setPage] = useState<number>(1);
+
+  useEffect(() => {
+    const limitParam = searchParams.get("limit");
+    const pageParam = searchParams.get("page");
+    if (limitParam) {
+      setLimit(parseInt(limitParam, 10));
+    }
+    if (pageParam) {
+      setPage(parseInt(pageParam, 10));
+    }
+  }, [searchParams]);
 
   useEffect(() => {
     fetchPurchases();
-  }, []);
+  }, [limit, page]);
 
   useContentUpdates((data) => {
     if (data.content_payload.type === "purchases") {
@@ -29,7 +45,10 @@ export default function AdminPurchasesPage() {
 
   const fetchPurchases = async () => {
     try {
-      const res = await fetch(`${config.apiBaseUrl}/api/v1/purchases`, {
+      const url = new URL(`${config.apiBaseUrl}/api/v1/purchases`);
+      url.searchParams.append("limit", limit.toString());
+      url.searchParams.append("page", page.toString());
+      const res = await fetch(url.toString(), {
         credentials: "include",
       });
       const data = await res.json();
@@ -43,6 +62,18 @@ export default function AdminPurchasesPage() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleLimitChange = (newLimit: string) => {
+    const limitValue = parseInt(newLimit, 10);
+    setLimit(limitValue);
+    setPage(1);
+    router.push(`?limit=${limitValue}&page=1`);
+  };
+
+  const handlePageChange = (newPage: number) => {
+    setPage(newPage);
+    router.push(`?limit=${limit}&page=${newPage}`);
   };
 
   if (!loggedIn) {
@@ -76,7 +107,15 @@ export default function AdminPurchasesPage() {
           <h1 className="text-2xl font-bold">Purchases</h1>
         </div>
 
-        <DataTable columns={columns} data={purchases} />
+        <DataTable
+          columns={columns}
+          data={purchases}
+          pageSize={limit}
+          onLimitChange={handleLimitChange}
+          currentLimit={limit}
+          currentPage={page}
+          onPageChange={handlePageChange}
+        />
       </div>
     </div>
   );
