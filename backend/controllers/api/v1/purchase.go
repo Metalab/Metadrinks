@@ -132,10 +132,10 @@ func CreatePurchase(c *gin.Context) {
 			if (*balance-int(finalCost) < 0) && !userTrust {
 				c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"message": "Not enough balance"})
 				return
-			} else {
-				transactionStatus = sumupmodels.TransactionFullStatusSuccessful
-				libs.UpdateUserBalance(userId, -int(finalCost))
 			}
+
+			transactionStatus = sumupmodels.TransactionFullStatusSuccessful
+			libs.UpdateUserBalance(userId, -int(finalCost))
 		} else if err.Error() == "user is restricted" {
 			c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"message": "User is restricted"})
 			return
@@ -236,51 +236,3 @@ func FindPurchase(c *gin.Context) {
 	c.Header("Content-Type", "application/json")
 	c.JSON(http.StatusOK, gin.H{"data": purchase})
 }
-
-/*type UpdatePurchaseInput struct {
-	Items       []models.Item `json:"items" binding:"required"`
-	PaymentType string        `json:"payment_type" binding:"required"`
-}
-
-func UpdatePurchase(c *gin.Context) {
-	var purchase models.Purchase
-	if err := models.DB.Where("purchase_id = ?", c.Param("id")).First(&purchase).Error; err != nil {
-		c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"error": "record not found"})
-		return
-	}
-
-	var input UpdatePurchaseInput
-	var finalCost uint = 0
-	returnArray := []models.Item{}
-
-	if err := c.ShouldBindJSON(&input); err != nil {
-		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
-
-	for _, v := range input.Items {
-		item := FindItemById(v.ItemId)
-		if item.ProductName == "No item found" {
-			c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"error": "itemid " + strconv.FormatUint(uint64(v.ItemId), 10) + " not found"})
-		}
-		finalCost += (item.Price * v.Quantity)
-		returnArray = append(returnArray, models.Item{ItemId: v.ItemId, ProductName: item.ProductName, Quantity: v.Quantity, Price: item.Price})
-	}
-
-	finalCost += input.Tip
-	updatedPurchase := models.Purchase{Items: returnArray, PaymentType: input.PaymentType, Tip: input.Tip, FinalCost: finalCost}
-
-	models.DB.Model(&purchase).Updates(&updatedPurchase)
-	c.JSON(http.StatusOK, gin.H{"data": purchase})
-}
-
-func DeletePurchase(c *gin.Context) {
-	var purchase models.Purchase
-	if err := models.DB.Where("purchase_id = ?", c.Param("id")).First(&purchase).Error; err != nil {
-		c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"error": "record not found"})
-		return
-	}
-
-	models.DB.Delete(&purchase)
-	c.JSON(http.StatusOK, gin.H{"data": "success"})
-}*/
