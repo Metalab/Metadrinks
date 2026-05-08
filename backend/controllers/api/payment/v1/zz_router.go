@@ -2,13 +2,14 @@ package v1
 
 import (
 	"metalab/metadrinks/controllers/auth"
+	"metalab/metadrinks/libs"
 
 	"github.com/gin-gonic/gin"
 )
 
 func RegisterRoutesV1(r *gin.RouterGroup) {
 	r.POST("/callback", GetIncomingWebhook)
-	r.GET("/events", SSEHeadersMiddleware(), Stream.ServeHTTP())
+	r.GET("/events", libs.SSEHeadersMiddleware(), libs.Stream.ServeHTTP())
 
 	re := r.Group("readers")
 	re.GET("", FindReaders)

@@ -1,9 +1,7 @@
 package v1
 
 import (
-	"encoding/json"
-	"fmt"
-	sse "metalab/metadrinks/controllers/api/payment/v1"
+	"metalab/metadrinks/libs"
 	"metalab/metadrinks/models"
 	"net/http"
 
@@ -54,22 +52,8 @@ func UpdateSettings(c *gin.Context) {
 
 	models.DB.Model(&settings).Updates(&updatedSettings)
 
-	notification := sse.SSENotification{
-		NotificationType: sse.SSENotificationType(sse.SSENotificationContentUpdate),
-		NotificationData: sse.SSENotificationPayload{
-			ContentPayload: &sse.SSENotificationContentUpdatePayload{
-				Type: "settings",
-			},
-		},
-	}
-
-	notificationJSON, err := json.Marshal(notification)
-	if err != nil {
-		fmt.Printf("error marshalling notification: %s\n", err.Error())
-		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "failed to process notification"})
+	if libs.HandleSSENotificationError(c, libs.SendSSEContentUpdateNotification("settings")) {
 		return
 	}
-
-	sse.Stream.SendMessage(string(notificationJSON))
 	c.JSON(http.StatusOK, gin.H{"data": settings})
 }

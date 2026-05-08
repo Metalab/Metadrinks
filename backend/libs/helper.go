@@ -2,11 +2,15 @@ package libs
 
 import (
 	"crypto/rand"
+	"encoding/json"
 	"fmt"
 	"math/big"
 	"metalab/metadrinks/models"
+	sumupmodels "metalab/metadrinks/models/sumup"
+	"net/http"
 	"strconv"
 
+	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 )
 
@@ -99,4 +103,51 @@ func GenerateSecureEAN13() (string, error) {
 	}
 
 	return "", fmt.Errorf("failed to generate unique barcode after %d attempts", maxAttempts)
+}
+
+func SendSSEContentUpdateNotification(contentType string) error {
+	notification := SSENotification{
+		NotificationType: SSENotificationType(SSENotificationContentUpdate),
+		NotificationData: SSENotificationPayload{
+			ContentPayload: &SSENotificationContentUpdatePayload{
+				Type: contentType,
+			},
+		},
+	}
+
+	return sendSSENotification(notification)
+}
+
+func SendSSETransactionUpdateNotification(clientTransactionId string, transactionStatus sumupmodels.TransactionFullStatus) error {
+	notification := SSENotification{
+		NotificationType: SSENotificationType(SSENotificationTransactionUpdate),
+		NotificationData: SSENotificationPayload{
+			TransactionPayload: &SSENotificationTransactionUpdatePayload{
+				ClientTransactionId: clientTransactionId,
+				TransactionStatus:   transactionStatus,
+			},
+		},
+	}
+
+	return sendSSENotification(notification)
+}
+
+func HandleSSENotificationError(c *gin.Context, err error) bool {
+	if err == nil {
+		return false
+	}
+
+	fmt.Printf("%s\n", err.Error())
+	c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "failed to process notification"})
+	return true
+}
+
+func sendSSENotification(notification SSENotification) error {
+	notificationJSON, err := json.Marshal(notification)
+	if err != nil {
+		return fmt.Errorf("error marshalling notification: %w", err)
+	}
+
+	Stream.SendMessage(string(notificationJSON))
+	return nil
 }

@@ -1,9 +1,7 @@
 package v1
 
 import (
-	"encoding/json"
-	"fmt"
-	sse "metalab/metadrinks/controllers/api/payment/v1"
+	"metalab/metadrinks/libs"
 	"metalab/metadrinks/libs/crypto"
 	"metalab/metadrinks/models"
 	"net/http"
@@ -59,23 +57,9 @@ func CreateUser(c *gin.Context) {
 	user := models.User{UserID: userId, Name: input.Name, Password: hashedPassword, IsTrusted: input.IsTrusted, IsAdmin: input.IsAdmin, IsActive: input.IsActive, IsRestricted: input.IsRestricted, UsedAt: time.Now().Local()}
 	models.DB.Create(&user)
 
-	notification := sse.SSENotification{
-		NotificationType: sse.SSENotificationType(sse.SSENotificationContentUpdate),
-		NotificationData: sse.SSENotificationPayload{
-			ContentPayload: &sse.SSENotificationContentUpdatePayload{
-				Type: "users",
-			},
-		},
-	}
-
-	notificationJSON, err := json.Marshal(notification)
-	if err != nil {
-		fmt.Printf("error marshalling notification: %s\n", err.Error())
-		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "failed to process notification"})
+	if libs.HandleSSENotificationError(c, libs.SendSSEContentUpdateNotification("users")) {
 		return
 	}
-
-	sse.Stream.SendMessage(string(notificationJSON))
 	c.JSON(http.StatusOK, gin.H{"data": user})
 }
 
@@ -153,22 +137,8 @@ func UpdateUser(c *gin.Context) {
 
 	models.DB.Model(&user).Updates(&updatedUser)
 
-	notification := sse.SSENotification{
-		NotificationType: sse.SSENotificationType(sse.SSENotificationContentUpdate),
-		NotificationData: sse.SSENotificationPayload{
-			ContentPayload: &sse.SSENotificationContentUpdatePayload{
-				Type: "users",
-			},
-		},
-	}
-
-	notificationJSON, err := json.Marshal(notification)
-	if err != nil {
-		fmt.Printf("error marshalling notification: %s\n", err.Error())
-		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "failed to process notification"})
+	if libs.HandleSSENotificationError(c, libs.SendSSEContentUpdateNotification("users")) {
 		return
 	}
-
-	sse.Stream.SendMessage(string(notificationJSON))
 	c.JSON(http.StatusOK, gin.H{"data": user})
 }

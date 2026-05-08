@@ -1,9 +1,7 @@
 package v1
 
 import (
-	"encoding/json"
-	"fmt"
-	sse "metalab/metadrinks/controllers/api/payment/v1"
+	"metalab/metadrinks/libs"
 	"net/http"
 
 	"metalab/metadrinks/models"
@@ -19,6 +17,8 @@ type CreateItemInput struct {
 	Image          string                 `json:"image"`
 	Volume         uint                   `json:"volume" binding:"required"`
 	Price          uint                   `json:"price" binding:"required"`
+	PurchasePrice  uint                   `json:"purchase_price"`
+	DepositPrice   uint                   `json:"deposit_price"`
 	Tags           pq.StringArray         `json:"tags"`
 	Barcodes       pq.StringArray         `json:"barcodes"`
 	NutritionInfo  []models.NutritionInfo `json:"nutrition_info"`
@@ -50,29 +50,16 @@ func CreateItem(c *gin.Context) {
 		return
 	}
 
-	item := models.Item{ProductName: input.ProductName, ProductVariant: input.ProductVariant, Image: input.Image, Volume: input.Volume, Price: input.Price, Tags: input.Tags, Barcodes: input.Barcodes, NutritionInfo: input.NutritionInfo, IsActive: input.IsActive}
+	item := models.Item{ProductName: input.ProductName, ProductVariant: input.ProductVariant, Image: input.Image, Volume: input.Volume, Price: input.Price, PurchasePrice: input.PurchasePrice, DepositPrice: input.DepositPrice, Tags: input.Tags, Barcodes: input.Barcodes, NutritionInfo: input.NutritionInfo, IsActive: input.IsActive}
 	if err := models.DB.Create(&item).Error; err != nil {
 		c.AbortWithStatus(http.StatusBadRequest /*, gin.H{"error": err.Error()}*/)
 		return
 	}
 
-	notification := sse.SSENotification{
-		NotificationType: sse.SSENotificationType(sse.SSENotificationContentUpdate),
-		NotificationData: sse.SSENotificationPayload{
-			ContentPayload: &sse.SSENotificationContentUpdatePayload{
-				Type: "items",
-			},
-		},
-	}
-
-	notificationJSON, err := json.Marshal(notification)
-	if err != nil {
-		fmt.Printf("error marshalling notification: %s\n", err.Error())
-		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "failed to process notification"})
+	if libs.HandleSSENotificationError(c, libs.SendSSEContentUpdateNotification("items")) {
 		return
 	}
 
-	sse.Stream.SendMessage(string(notificationJSON))
 	c.JSON(http.StatusOK, gin.H{"data": item})
 }
 
@@ -136,6 +123,8 @@ type UpdateItemInput struct {
 	Image          string                 `json:"image,omitempty"`
 	Volume         uint                   `json:"volume,omitempty"`
 	Price          uint                   `json:"price,omitempty"`
+	PurchasePrice  uint                   `json:"purchase_price"`
+	DepositPrice   uint                   `json:"deposit_price"`
 	Tags           pq.StringArray         `json:"tags,omitempty"`
 	Barcodes       pq.StringArray         `json:"barcodes,omitempty"`
 	NutritionInfo  []models.NutritionInfo `json:"nutrition_info,omitempty"`
@@ -173,27 +162,14 @@ func UpdateItem(c *gin.Context) {
 		return
 	}
 
-	updatedItem := models.Item{ProductName: input.ProductName, ProductVariant: input.ProductVariant, Image: input.Image, Volume: input.Volume, Price: input.Price, Tags: input.Tags, Barcodes: input.Barcodes, NutritionInfo: input.NutritionInfo, IsActive: input.IsActive}
+	updatedItem := models.Item{ProductName: input.ProductName, ProductVariant: input.ProductVariant, Image: input.Image, Volume: input.Volume, Price: input.Price, PurchasePrice: input.PurchasePrice, DepositPrice: input.DepositPrice, Tags: input.Tags, Barcodes: input.Barcodes, NutritionInfo: input.NutritionInfo, IsActive: input.IsActive}
 
 	models.DB.Model(&item).Updates(&updatedItem)
 
-	notification := sse.SSENotification{
-		NotificationType: sse.SSENotificationType(sse.SSENotificationContentUpdate),
-		NotificationData: sse.SSENotificationPayload{
-			ContentPayload: &sse.SSENotificationContentUpdatePayload{
-				Type: "items",
-			},
-		},
-	}
-
-	notificationJSON, err := json.Marshal(notification)
-	if err != nil {
-		fmt.Printf("error marshalling notification: %s\n", err.Error())
-		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "failed to process notification"})
+	if libs.HandleSSENotificationError(c, libs.SendSSEContentUpdateNotification("items")) {
 		return
 	}
 
-	sse.Stream.SendMessage(string(notificationJSON))
 	c.JSON(http.StatusOK, gin.H{"data": item})
 }
 
@@ -223,22 +199,9 @@ func DeleteItem(c *gin.Context) {
 
 	models.DB.Delete(&item)
 
-	notification := sse.SSENotification{
-		NotificationType: sse.SSENotificationType(sse.SSENotificationContentUpdate),
-		NotificationData: sse.SSENotificationPayload{
-			ContentPayload: &sse.SSENotificationContentUpdatePayload{
-				Type: "items",
-			},
-		},
-	}
-
-	notificationJSON, err := json.Marshal(notification)
-	if err != nil {
-		fmt.Printf("error marshalling notification: %s\n", err.Error())
-		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "failed to process notification"})
+	if libs.HandleSSENotificationError(c, libs.SendSSEContentUpdateNotification("items")) {
 		return
 	}
 
-	sse.Stream.SendMessage(string(notificationJSON))
 	c.JSON(http.StatusOK, gin.H{"data": "success"})
 }

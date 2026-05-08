@@ -2,7 +2,6 @@ package v1
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	jwt "metalab/metadrinks/libs/auth"
 	"net/http"
@@ -284,23 +283,9 @@ func DeleteReader(c *gin.Context) {
 		updatedSettings := models.Settings{MaintenanceMode: settings.MaintenanceMode, DefaultReaderId: nil}
 		models.DB.Model(&settings).Updates(&updatedSettings)
 
-		notification := SSENotification{
-			NotificationType: SSENotificationType(SSENotificationContentUpdate),
-			NotificationData: SSENotificationPayload{
-				ContentPayload: &SSENotificationContentUpdatePayload{
-					Type: "settings",
-				},
-			},
-		}
-
-		notificationJSON, err := json.Marshal(notification)
-		if err != nil {
-			fmt.Printf("error marshalling notification: %s\n", err.Error())
-			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "failed to process notification"})
+		if libs.HandleSSENotificationError(c, libs.SendSSEContentUpdateNotification("settings")) {
 			return
 		}
-
-		Stream.SendMessage(string(notificationJSON))
 	}
 	models.DB.Where("reader_id = ?", reader.ReaderId).Delete(&reader)
 
@@ -343,23 +328,11 @@ func GetIncomingWebhook(c *gin.Context) {
 
 	models.DB.Model(&purchase).Updates(insertData)
 
-	notification := SSENotification{
-		NotificationType: SSENotificationType(SSENotificationTransactionUpdate),
-		NotificationData: SSENotificationPayload{
-			TransactionPayload: &SSENotificationTransactionUpdatePayload{
-				ClientTransactionId: input.Payload.ClientTransactionId,
-				TransactionStatus:   input.Payload.Status,
-			},
-		},
-	}
-
-	notificationJSON, err := json.Marshal(notification)
-	if err != nil {
-		fmt.Printf("error marshalling notification: %s\n", err.Error())
-		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "failed to process notification"})
+	if libs.HandleSSENotificationError(c, libs.SendSSETransactionUpdateNotification(
+		input.Payload.ClientTransactionId,
+		input.Payload.Status,
+	)) {
 		return
 	}
-
-	Stream.SendMessage(string(notificationJSON))
 	c.JSON(http.StatusOK, gin.H{"data": "success"})
 }

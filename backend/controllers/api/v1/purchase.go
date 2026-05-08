@@ -55,6 +55,7 @@ type PurchaseItemInput struct {
 func CreatePurchase(c *gin.Context) {
 	var input CreatePurchaseInput
 	var finalCost uint = 0
+	var profit = 0
 	clientTransactionId := ""
 	var transactionDescription []string
 	var transactionStatus sumupmodels.TransactionFullStatus
@@ -90,7 +91,10 @@ func CreatePurchase(c *gin.Context) {
 			return
 		}
 		finalCost += item.Price * v.Amount
-		returnedItemsArray = append(returnedItemsArray, models.PurchaseItem{ItemId: v.ItemId, ProductName: item.ProductName, ProductVariant: item.ProductVariant, Price: item.Price, Amount: v.Amount})
+		if item.PurchasePrice != 0 {
+			profit += int(((item.Price - item.PurchasePrice) - (item.DepositPrice)) * v.Amount)
+		}
+		returnedItemsArray = append(returnedItemsArray, models.PurchaseItem{ItemId: v.ItemId, ProductName: item.ProductName, ProductVariant: item.ProductVariant, Volume: item.Volume, Price: item.Price, PurchasePrice: item.PurchasePrice, DepositPrice: item.DepositPrice, Amount: v.Amount})
 		if v.Amount > 1 {
 			transactionDescription = append(transactionDescription, fmt.Sprintf("%s x%d ", item.ProductName, v.Amount))
 		} else {
@@ -135,15 +139,16 @@ func CreatePurchase(c *gin.Context) {
 		} else if err.Error() == "user is restricted" {
 			c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"message": "User is restricted"})
 			return
-		} else {
-			c.AbortWithStatus(http.StatusInternalServerError)
-			return
 		}
+
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
 	}
 
-	purchase := models.Purchase{Items: returnedItemsArray, PaymentType: input.PaymentType, ClientTransactionId: clientTransactionId, TransactionStatus: transactionStatus, FinalCost: finalCost, RefundAmount: input.Amount, CreatedBy: userId}
+	purchase := models.Purchase{Items: returnedItemsArray, PaymentType: input.PaymentType, ClientTransactionId: clientTransactionId, TransactionStatus: transactionStatus, FinalCost: finalCost, RefundAmount: input.Amount, Profit: profit, CreatedBy: userId}
 	models.DB.Create(&purchase)
 
+	purchase.Profit = 0 // omit from response
 	c.JSON(http.StatusOK, gin.H{"data": purchase})
 }
 
@@ -181,6 +186,9 @@ func FindPurchases(c *gin.Context) {
 	}
 	if !isAdmin {
 		models.DB.Where("created_by = ?", userId).Order("created_at DESC").Limit(limitInt).Offset(offsetInt).Find(&purchases)
+		for i := range purchases {
+			purchases[i].Profit = 0 // do not return profit for non-admins
+		}
 	} else {
 		models.DB.Order("created_at DESC").Limit(limitInt).Offset(offsetInt).Find(&purchases)
 	}
@@ -217,6 +225,7 @@ func FindPurchase(c *gin.Context) {
 			c.AbortWithStatus(http.StatusNotFound)
 			return
 		}
+		purchase.Profit = 0 // do not return profit for non-admins
 	} else {
 		if err := models.DB.Where("purchase_id = ?", c.Param("id")).First(&purchase).Error; err != nil {
 			c.AbortWithStatus(http.StatusNotFound)
