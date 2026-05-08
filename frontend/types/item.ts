@@ -5,6 +5,8 @@ export type Item = {
   image?: string;
   volume: number;
   price: number;
+  purchase_price?: number;
+  deposit_price?: number;
   amount?: number;
   barcodes?: string[];
   tags?: string[];

@@ -53,6 +53,8 @@ export default function ItemDialog({
   const [image, setImage] = React.useState("");
   const [volume, setVolume] = React.useState("");
   const [price, setPrice] = React.useState("");
+  const [purchasePrice, setPurchasePrice] = React.useState("");
+  const [depositPrice, setDepositPrice] = React.useState("");
   const [isActive, setIsActive] = React.useState(true);
   const [barcodes, setBarcodes] = React.useState<string[]>([""]);
   const [barcodeErrors, setBarcodeErrors] = React.useState<(string | null)[]>([
@@ -72,6 +74,16 @@ export default function ItemDialog({
     alcohol: "Alcoholic",
     caffeine: "Contains Caffeine",
     "sugar-free": "Sugar Free",
+  };
+
+  const profitMarginThresholds = {
+    red: 25,
+    yellow: 50,
+  };
+
+  const profitCentsThresholds = {
+    red: 25,
+    yellow: 50,
   };
 
   const isEditMode = !!item?.id;
@@ -105,6 +117,8 @@ export default function ItemDialog({
       setImage(item.image || "");
       setVolume(item.volume?.toString() || "");
       setPrice(item.price?.toString() || "");
+      setPurchasePrice(item.purchase_price?.toString() || "");
+      setDepositPrice(item.deposit_price?.toString() || "");
       setIsActive(item.is_active ?? true);
       setBarcodes(
         item.barcodes && item.barcodes.length > 0 ? item.barcodes : [""],
@@ -126,6 +140,8 @@ export default function ItemDialog({
       setImage("");
       setVolume("");
       setPrice("");
+      setPurchasePrice("");
+      setDepositPrice("");
       setIsActive(true);
       setBarcodes([""]);
       setBarcodeErrors([null]);
@@ -223,6 +239,8 @@ export default function ItemDialog({
         image: image || undefined,
         volume: parseInt(volume, 10),
         price: parseInt(price, 10),
+        purchase_price: purchasePrice ? parseInt(purchasePrice, 10) : undefined,
+        deposit_price: depositPrice ? parseInt(depositPrice, 10) : undefined,
         is_active: isActive,
         barcodes: filteredBarcodes.length > 0 ? filteredBarcodes : undefined,
         nutrition_info:
@@ -258,6 +276,8 @@ export default function ItemDialog({
       setImage("");
       setVolume("");
       setPrice("");
+      setPurchasePrice("");
+      setDepositPrice("");
       setIsActive(true);
       setBarcodes([""]);
       setBarcodeErrors([null]);
@@ -416,6 +436,136 @@ export default function ItemDialog({
                 />
               </div>
             </div>
+
+            <div className="grid w-full items-center gap-3">
+              <Label htmlFor="purchase_price">Purchase Price (cents)</Label>
+              <div className="relative">
+                <DollarSignIcon className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  id="purchase_price"
+                  type="number"
+                  placeholder="Purchase price in cents"
+                  value={purchasePrice}
+                  onChange={(e) => setPurchasePrice(e.target.value)}
+                  disabled={loading}
+                  className="pl-10"
+                  min="0"
+                />
+              </div>
+            </div>
+
+            <div className="grid w-full items-center gap-3">
+              <Label htmlFor="deposit_price">Deposit Price (cents)</Label>
+              <div className="relative">
+                <DollarSignIcon className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  id="deposit_price"
+                  type="number"
+                  placeholder="Bottle deposit in cents"
+                  value={depositPrice}
+                  onChange={(e) => setDepositPrice(e.target.value)}
+                  disabled={loading}
+                  className="pl-10"
+                  min="0"
+                />
+              </div>
+            </div>
+
+            {price && purchasePrice && (
+              <div className="grid w-full items-center gap-3 bg-muted/50 p-3 rounded-md space-y-2">
+                <Label className="font-normal text-xs text-muted-foreground">
+                  Profit Analysis
+                </Label>
+                <div className="space-y-2">
+                  {(() => {
+                    const sellingPrice = parseInt(price, 10);
+                    const purchasingPrice = parseInt(purchasePrice, 10);
+                    const depositPrice_ = depositPrice
+                      ? parseInt(depositPrice, 10)
+                      : 0;
+
+                    const profitExclDeposit = sellingPrice - purchasingPrice;
+                    const profitInclDeposit =
+                      sellingPrice - (purchasingPrice + depositPrice_);
+
+                    const marginExclDeposit = (
+                      (profitExclDeposit / purchasingPrice) *
+                      100
+                    ).toFixed(1);
+                    const marginInclDeposit = (
+                      (profitInclDeposit / (purchasingPrice + depositPrice_)) *
+                      100
+                    ).toFixed(1);
+
+                    const getMarginColor = (margin: string) => {
+                      const value = parseFloat(margin);
+                      if (value < profitMarginThresholds.red)
+                        return "text-red-600";
+                      if (value < profitMarginThresholds.yellow)
+                        return "text-yellow-600";
+                      return "text-green-600";
+                    };
+
+                    const getProfitColor = (profit: number) => {
+                      if (profit < profitCentsThresholds.red)
+                        return "text-red-600";
+                      if (profit < profitCentsThresholds.yellow)
+                        return "text-yellow-600";
+                      return "text-green-600";
+                    };
+
+                    return (
+                      <>
+                        <div className="flex items-center justify-between text-xs">
+                          <span className="text-muted-foreground">
+                            Margin (excl. deposit):
+                          </span>
+                          <span
+                            className={`font-medium ${getMarginColor(marginExclDeposit)}`}
+                          >
+                            {marginExclDeposit}%
+                          </span>
+                        </div>
+                        {depositPrice_ > 0 && (
+                          <div className="flex items-center justify-between text-xs">
+                            <span className="text-muted-foreground">
+                              Margin (with deposit):
+                            </span>
+                            <span
+                              className={`font-medium ${getMarginColor(marginInclDeposit)}`}
+                            >
+                              {marginInclDeposit}%
+                            </span>
+                          </div>
+                        )}
+                        <div className="flex items-center justify-between text-xs pt-2 border-t border-muted">
+                          <span className="text-muted-foreground">
+                            Profit (excl. deposit):
+                          </span>
+                          <span
+                            className={`font-medium ${getProfitColor(profitExclDeposit)}`}
+                          >
+                            {profitExclDeposit}¢
+                          </span>
+                        </div>
+                        {depositPrice_ > 0 && (
+                          <div className="flex items-center justify-between text-xs">
+                            <span className="text-muted-foreground">
+                              Profit (with deposit):
+                            </span>
+                            <span
+                              className={`font-medium ${getProfitColor(profitInclDeposit)}`}
+                            >
+                              {profitInclDeposit}¢
+                            </span>
+                          </div>
+                        )}
+                      </>
+                    );
+                  })()}
+                </div>
+              </div>
+            )}
 
             <div className="grid w-full items-center gap-3">
               <Label htmlFor="image">Image URL</Label>
