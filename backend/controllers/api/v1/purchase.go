@@ -124,29 +124,37 @@ func CreatePurchase(c *gin.Context) {
 		}
 		transactionStatus = sumupmodels.TransactionFullStatusSuccessful
 	case models.PaymentTypeBalance:
-		if balance, err := libs.GetUserBalance(userId); err == nil {
-			if finalCost >= math.MaxInt32 {
-				c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"message": "Final cost exceeds maximum allowed value"})
+		balance, err := libs.GetUserBalance(userId)
+		if err != nil {
+			if err.Error() == "user is restricted" {
+				c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"message": "user is restricted"})
 				return
 			}
-			if (*balance-int(finalCost) < 0) && !userTrust {
-				c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"message": "Not enough balance"})
-				return
-			}
-
-			transactionStatus = sumupmodels.TransactionFullStatusSuccessful
-			libs.UpdateUserBalance(userId, -int(finalCost))
-		} else if err.Error() == "user is restricted" {
-			c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"message": "User is restricted"})
+			fmt.Printf("error while getting user balance for purchase: user_id=%s final_cost=%d error=%s\n", userId, finalCost, err.Error())
+			c.AbortWithStatus(http.StatusInternalServerError)
 			return
 		}
 
-		c.AbortWithStatus(http.StatusInternalServerError)
-		return
+		if finalCost >= math.MaxInt32 {
+			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"message": "Final cost exceeds maximum allowed value"})
+			return
+		}
+
+		if (*balance-int(finalCost) < 0) && !userTrust {
+			c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"message": "Not enough balance"})
+			return
+		}
+
+		transactionStatus = sumupmodels.TransactionFullStatusSuccessful
+		libs.UpdateUserBalance(userId, -int(finalCost))
 	}
 
 	purchase := models.Purchase{Items: returnedItemsArray, PaymentType: input.PaymentType, ClientTransactionId: clientTransactionId, TransactionStatus: transactionStatus, FinalCost: finalCost, RefundAmount: input.Amount, Profit: profit, CreatedBy: userId}
-	models.DB.Create(&purchase)
+	if err := models.DB.Create(&purchase).Error; err != nil {
+		fmt.Printf("error while creating purchase: user_id=%s payment_type=%s final_cost=%d error=%s\n", userId, input.PaymentType, finalCost, err.Error())
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
 
 	purchase.Profit = 0 // omit from response
 	c.JSON(http.StatusOK, gin.H{"data": purchase})

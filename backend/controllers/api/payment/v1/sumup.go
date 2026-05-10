@@ -320,7 +320,7 @@ func GetIncomingWebhook(c *gin.Context) {
 	}
 
 	insertData := models.Purchase{TransactionStatus: input.Payload.Status}
-	fmt.Printf("incoming sumup webhook: %v", input.Payload)
+	fmt.Printf("incoming sumup webhook: %v\n", input.Payload)
 
 	if purchase.RefundAmount != 0 && input.Payload.Status == "successful" {
 		libs.UpdateUserBalance(purchase.CreatedBy, int(purchase.RefundAmount))
