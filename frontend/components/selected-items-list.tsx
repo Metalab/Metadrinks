@@ -23,7 +23,13 @@ export function SelectedItemsList() {
             <div className="flex-1">
               <div className="font-medium w-32">{item.name}</div>
               <div className="text-sm text-gray-500">
-                {((item.price * item.quantity) / 100).toFixed(2)}€
+                {(
+                  (item.price - (item.deposit_price ?? 0) * item.quantity) /
+                  100
+                ).toFixed(2)}
+                €{" "}
+                {(item.deposit_price ?? 0) > 0 &&
+                  `(+ ${(((item.deposit_price ?? 0) * item.quantity) / 100).toFixed(2)}€ deposit)`}
               </div>
             </div>
             <div className="flex items-center gap-2">
