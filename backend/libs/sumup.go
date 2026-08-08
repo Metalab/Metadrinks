@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"strings"
 	"time"
 
 	"metalab/metadrinks/models"
@@ -123,7 +124,7 @@ func ValidateTransactionState(ClientTransactionId string, TransactionStatus sumu
 		/*if transaction.Timestamp.Before(time.Now().Add(-24 * time.Hour)) {
 			return false, fmt.Errorf("transaction %s is too old", ClientTransactionId)
 		}*/
-		if *transaction.Status == TransactionStatus {
+		if strings.EqualFold(string(*transaction.Status), string(TransactionStatus)) {
 			return nil
 		}
 		return fmt.Errorf("transaction %s is not in %s state", ClientTransactionId, TransactionStatus)
