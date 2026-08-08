@@ -28,21 +28,22 @@ func GetUserBalance(userId uuid.UUID) (*int, error) {
 	return user.Balance, nil
 }
 
-func UpdateUserBalance(userId uuid.UUID, change int) {
+func UpdateUserBalance(userId uuid.UUID, change int) error {
 	var user models.User
 	changePtr := &change
 
 	if err := models.DB.Where("user_id = ?", userId).First(&user).Error; err != nil {
-		return
+		return fmt.Errorf("failed to find user: %w", err)
 	}
 
 	if *user.IsRestricted {
-		return
+		return fmt.Errorf("user is restricted")
 	}
 
 	balancePtr := *user.Balance + *changePtr
 	user.Balance = &balancePtr
 	models.DB.Save(&user)
+	return nil
 }
 
 // calculateEAN13Checksum calculates the check digit for an EAN-13 barcode

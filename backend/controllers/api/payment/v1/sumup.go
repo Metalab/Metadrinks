@@ -307,6 +307,7 @@ func DeleteReader(c *gin.Context) {
 //	@Router			/callback [post]
 func GetIncomingWebhook(c *gin.Context) {
 	// After receiving a webhook call, your application must always verify if the event really took place, by calling a relevant SumUp's API.
+	// TODO: Check if the events really took place. See above.
 	var input sumupmodels.ReaderCheckoutStatusChange
 	var purchase models.Purchase
 	if err := c.ShouldBindJSON(&input); err != nil {
@@ -323,7 +324,10 @@ func GetIncomingWebhook(c *gin.Context) {
 	fmt.Printf("incoming sumup webhook: %v\n", input.Payload)
 
 	if purchase.RefundAmount != 0 && input.Payload.Status == "successful" {
-		libs.UpdateUserBalance(purchase.CreatedBy, int(purchase.RefundAmount))
+		if err := libs.UpdateUserBalance(purchase.CreatedBy, int(purchase.RefundAmount)); err != nil {
+			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": "Error while updating user balance"})
+			return
+		}
 	}
 
 	models.DB.Model(&purchase).Updates(insertData)

@@ -56,6 +56,7 @@ func CreatePurchase(c *gin.Context) {
 	var input CreatePurchaseInput
 	var finalCost uint = 0
 	var profit = 0
+	var remainingBalance = 0
 	clientTransactionId := ""
 	var transactionDescription []string
 	var transactionStatus sumupmodels.TransactionFullStatus
@@ -120,7 +121,10 @@ func CreatePurchase(c *gin.Context) {
 	case models.PaymentTypeCash:
 		if input.Amount != 0 {
 			finalCost = input.Amount
-			libs.UpdateUserBalance(userId, int(input.Amount))
+			if err := libs.UpdateUserBalance(userId, int(input.Amount)); err != nil {
+				c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": "Error while updating user balance"})
+				return
+			}
 		}
 		transactionStatus = sumupmodels.TransactionFullStatusSuccessful
 	case models.PaymentTypeBalance:
@@ -135,21 +139,39 @@ func CreatePurchase(c *gin.Context) {
 			return
 		}
 
-		if finalCost >= math.MaxInt32 {
+		if balance == nil {
+			fmt.Printf("error while getting user balance for purchase: user_id=%s final_cost=%d error=balance is nil\n", userId, finalCost)
+			c.AbortWithStatus(http.StatusInternalServerError)
+			return
+		}
+
+		if finalCost > math.MaxInt {
 			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"message": "Final cost exceeds maximum allowed value"})
 			return
 		}
 
-		if (*balance-int(finalCost) < 0) && !userTrust {
+		cost := int(finalCost)
+
+		if cost > 0 && *balance < math.MinInt+cost {
+			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"message": "Balance calculation would underflow"})
+			return
+		}
+
+		remainingBalance = *balance - cost
+
+		if remainingBalance < 0 && !userTrust {
 			c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"message": "Not enough balance"})
 			return
 		}
 
 		transactionStatus = sumupmodels.TransactionFullStatusSuccessful
-		libs.UpdateUserBalance(userId, -int(finalCost))
+		if err := libs.UpdateUserBalance(userId, -cost); err != nil {
+			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": "Error while updating user balance"})
+			return
+		}
 	}
 
-	purchase := models.Purchase{Items: returnedItemsArray, PaymentType: input.PaymentType, ClientTransactionId: clientTransactionId, TransactionStatus: transactionStatus, FinalCost: finalCost, RefundAmount: input.Amount, Profit: profit, CreatedBy: userId}
+	purchase := models.Purchase{Items: returnedItemsArray, PaymentType: input.PaymentType, ClientTransactionId: clientTransactionId, TransactionStatus: transactionStatus, FinalCost: finalCost, RefundAmount: input.Amount, Profit: profit, RemainingBalance: remainingBalance, CreatedBy: userId}
 	if err := models.DB.Create(&purchase).Error; err != nil {
 		fmt.Printf("error while creating purchase: user_id=%s payment_type=%s final_cost=%d error=%s\n", userId, input.PaymentType, finalCost, err.Error())
 		c.AbortWithStatus(http.StatusInternalServerError)
@@ -189,7 +211,7 @@ func FindPurchases(c *gin.Context) {
 	offsetInt := (pageInt - 1) * limitInt
 
 	if err != nil {
-		c.AbortWithError(http.StatusBadRequest, err)
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 	if !isAdmin {

@@ -14,9 +14,10 @@ type Purchase struct {
 	PaymentType         PaymentType                       `json:"payment_type"`
 	TransactionStatus   sumupmodels.TransactionFullStatus `json:"status"`
 	ClientTransactionId string                            `json:"client_transaction_id,omitempty"`
-	FinalCost           uint                              `json:"final_cost"`              // price the user pays
-	RefundAmount        uint                              `json:"refund_amount,omitempty"` // adds balance to the user account
-	Profit              int                               `json:"profit,omitempty"`        // profit from the purchase, can be negative
+	FinalCost           uint                              `json:"final_cost"`                           // price the user pays
+	RefundAmount        uint                              `json:"refund_amount,omitempty"`              // adds balance to the user account
+	Profit              int                               `json:"profit,omitempty"`                     // profit from the purchase, can be negative
+	RemainingBalance    int                               `json:"remaining_balance,omitempty" gorm:"-"` //remaining balance after the purchase, can be negative (used in response, not db)
 	CreatedAt           time.Time                         `json:"created_at"`
 	CreatedBy           uuid.UUID                         `json:"created_by"` // uuid of user, otherwise null uuid (for guests)
 }
