@@ -119,7 +119,7 @@ export function BarcodeSearchInput({
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(payload),
                 credentials: "include",
-              }
+              },
             );
 
             if (!response.ok) {
@@ -139,7 +139,12 @@ export function BarcodeSearchInput({
 
             logout();
             toast.success("Purchase completed", {
-              description: "Items charged to your balance",
+              description:
+                "Payment successful. €" +
+                ((await response.json()).data.remaining_balance / 100).toFixed(
+                  2,
+                ) +
+                " remaining.",
             });
           } catch (error) {
             toast.error("Purchase failed", {
@@ -169,7 +174,7 @@ export function BarcodeSearchInput({
     }
 
     const foundItem = items.find((item: Item) =>
-      item.barcodes?.includes(barcode)
+      item.barcodes?.includes(barcode),
     );
     if (foundItem) {
       const event = new CustomEvent("barcode-item-scanned", {
@@ -202,7 +207,7 @@ export function BarcodeSearchInput({
       const pendingBarcode = sessionStorage.getItem("pendingBarcode");
       if (pendingBarcode) {
         const foundItem = items.find((item: Item) =>
-          item.barcodes?.includes(pendingBarcode)
+          item.barcodes?.includes(pendingBarcode),
         );
         if (foundItem) {
           const event = new CustomEvent("barcode-item-scanned", {
