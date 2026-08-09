@@ -1,0 +1,20 @@
+export type Item = {
+  id: string;
+  name: string;
+  variant?: string;
+  image?: string;
+  volume: number;
+  price: number;
+  purchase_price?: number;
+  deposit_price?: number;
+  amount?: number;
+  barcodes?: string[];
+  tags?: string[];
+  nutrition_info?: NutritionInfo[];
+  is_active?: boolean;
+};
+
+type NutritionInfo = {
+  name: string;
+  value: string;
+};

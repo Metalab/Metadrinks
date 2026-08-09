@@ -9,14 +9,15 @@ import (
 
 type User struct {
 	UserID       uuid.UUID      `json:"id" gorm:"primaryKey;unique;type:uuid;default:gen_random_uuid()"`
-	Name         string         `json:"name" gorm:"index,unique"`
-	Image        string         `json:"image" default:"assets/empty.webp"`
+	Name         string         `json:"name" gorm:"index,unique,size:24"`
+	Image        string         `json:"image,omitempty"`
 	Password     string         `json:"password,omitempty"`
-	Balance      int            `json:"balance" gorm:"default:0"`
-	IsTrusted    bool           `json:"is_trusted" gorm:"default:false"`
-	IsAdmin      bool           `json:"is_admin" gorm:"default:false"`
-	IsActive     bool           `json:"is_active" gorm:"default:true"`
-	IsRestricted bool           `json:"is_restricted" gorm:"default:false"` // this entirely disables the balance element for the affected user
+	LoginBarcode string         `json:"login_barcode,omitempty"`
+	Balance      *int           `json:"balance" gorm:"default:0" binding:"exists"`
+	IsTrusted    *bool          `json:"is_trusted" gorm:"default:false"`
+	IsAdmin      *bool          `json:"is_admin" gorm:"default:false"`
+	IsActive     *bool          `json:"is_active" gorm:"default:true"`
+	IsRestricted *bool          `json:"is_restricted" gorm:"default:false"` // this entirely disables the balance element for the affected user
 	CreatedAt    time.Time      `json:"created_at"`
 	UsedAt       time.Time      `json:"used_at"`
 	DeletedAt    gorm.DeletedAt `json:"deleted_at"`

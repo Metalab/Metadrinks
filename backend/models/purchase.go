@@ -10,14 +10,27 @@ import (
 
 type Purchase struct {
 	PurchaseId          uuid.UUID                         `json:"id" gorm:"primaryKey;unique;type:uuid;default:gen_random_uuid()"`
-	Items               []Item                            `json:"items,omitempty" gorm:"foreignKey:ItemID;type:bytes;serializer:gob"`
+	Items               []PurchaseItem                    `json:"items,omitempty" gorm:"type:jsonb;serializer:json"`
 	PaymentType         PaymentType                       `json:"payment_type"`
 	TransactionStatus   sumupmodels.TransactionFullStatus `json:"status"`
 	ClientTransactionId string                            `json:"client_transaction_id,omitempty"`
-	FinalCost           uint                              `json:"final_cost"`
-	RefundAmount        uint                              `json:"refund_amount,omitempty"` // adds balance to the user account
+	FinalCost           uint                              `json:"final_cost"`                           // price the user pays
+	RefundAmount        uint                              `json:"refund_amount,omitempty"`              // adds balance to the user account
+	Profit              int                               `json:"profit,omitempty"`                     // profit from the purchase, can be negative
+	RemainingBalance    int                               `json:"remaining_balance,omitempty" gorm:"-"` //remaining balance after the purchase, can be negative (used in response, not db)
 	CreatedAt           time.Time                         `json:"created_at"`
 	CreatedBy           uuid.UUID                         `json:"created_by"` // uuid of user, otherwise null uuid (for guests)
+}
+
+type PurchaseItem struct {
+	ItemId         uuid.UUID `json:"id"`
+	ProductName    string    `json:"name"`
+	ProductVariant string    `json:"variant"`
+	Volume         uint      `json:"volume"`
+	Price          uint      `json:"price"`
+	PurchasePrice  uint      `json:"purchase_price,omitempty"`
+	DepositPrice   uint      `json:"deposit_price,omitempty"`
+	Amount         uint      `json:"amount"`
 }
 
 // PaymentType The type of the payment object gives information about the type of payment.

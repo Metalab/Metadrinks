@@ -11,7 +11,8 @@ import (
 	"metalab/metadrinks/models"
 	sumupmodels "metalab/metadrinks/models/sumup"
 
-	jwt "github.com/appleboy/gin-jwt/v2"
+	jwt "metalab/metadrinks/libs/auth"
+
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 )
@@ -54,81 +55,130 @@ type PurchaseItemInput struct {
 func CreatePurchase(c *gin.Context) {
 	var input CreatePurchaseInput
 	var finalCost uint = 0
+	var profit = 0
+	var remainingBalance = 0
 	clientTransactionId := ""
 	var transactionDescription []string
 	var transactionStatus sumupmodels.TransactionFullStatus
-	var returnedItemsArray []models.Item
+	var returnedItemsArray []models.PurchaseItem
 	userClaims := jwt.ExtractClaims(c)
 	userId := uuid.MustParse(userClaims["userId"].(string))
 	userTrust := userClaims["trusted"].(bool)
 
 	if err := c.ShouldBindJSON(&input); err != nil {
-		c.AbortWithError(http.StatusBadRequest, err)
+		c.AbortWithStatus(http.StatusBadRequest)
 		return
 	}
 
 	if input.Amount != 0 && len(input.Items) != 0 {
-		c.AbortWithError(http.StatusBadRequest, fmt.Errorf("only one of 'items' and 'amount' can be specified"))
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"message": "Only one of 'items' and 'amount' can be specified"})
+		return
+	}
+
+	if input.Amount != 0 && input.PaymentType == models.PaymentTypeBalance {
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"message": "Balance payment type cannot be used with amount"})
 		return
 	}
 
 	if input.Amount != 0 && userClaims["restricted"].(bool) {
-		c.AbortWithError(http.StatusForbidden, fmt.Errorf("user is restricted"))
+		c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"message": "User is restricted"})
 		return
 	}
 
 	for _, v := range input.Items {
 		item := FindItemById(v.ItemId)
-		finalCost += item.Price
-		returnedItemsArray = append(returnedItemsArray, models.Item{ItemId: v.ItemId, Name: item.Name, Price: item.Price, Amount: v.Amount})
+		if item.IsActive != nil && *item.IsActive == false {
+			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"message": "Attempted to purchase inactive item"})
+			return
+		}
+		finalCost += item.Price * v.Amount
+		if item.PurchasePrice != 0 {
+			profit += int(((item.Price - item.PurchasePrice) - (item.DepositPrice)) * v.Amount)
+		}
+		returnedItemsArray = append(returnedItemsArray, models.PurchaseItem{ItemId: v.ItemId, ProductName: item.ProductName, ProductVariant: item.ProductVariant, Volume: item.Volume, Price: item.Price, PurchasePrice: item.PurchasePrice, DepositPrice: item.DepositPrice, Amount: v.Amount})
 		if v.Amount > 1 {
-			transactionDescription = append(transactionDescription, fmt.Sprintf("%s x%d ", item.Name, v.Amount))
+			transactionDescription = append(transactionDescription, fmt.Sprintf("%s x%d ", item.ProductName, v.Amount))
 		} else {
-			transactionDescription = append(transactionDescription, fmt.Sprintf("%s ", item.Name))
+			transactionDescription = append(transactionDescription, fmt.Sprintf("%s ", item.ProductName))
 		}
 	}
 
 	finalTransactionDescription := strings.Join(transactionDescription[:], ", ")
 	switch input.PaymentType {
 	case models.PaymentTypeCard:
+		if finalCost == 0 && input.Amount != 0 {
+			finalCost = input.Amount
+			finalTransactionDescription = fmt.Sprintf("Balance top-up of €%d", input.Amount)
+		}
 		var err error
 		transactionStatus = sumupmodels.TransactionFullStatusPending
 		clientTransactionId, err = libs.StartReaderCheckout(input.ReaderId, finalCost, &finalTransactionDescription)
 		if err != nil {
-			fmt.Printf("error while creating reader checkout: %s\n", err.Error())
-			c.AbortWithError(http.StatusInternalServerError, err)
+			fmt.Printf("error while creating reader checkout: %s\n", libs.FormatSumUpError(err))
+			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": libs.FormatSumUpError(err)})
 			return
 		}
 	case models.PaymentTypeCash:
+		if input.Amount != 0 {
+			finalCost = input.Amount
+			if err := libs.UpdateUserBalance(userId, int(input.Amount)); err != nil {
+				c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": "Error while updating user balance"})
+				return
+			}
+		}
 		transactionStatus = sumupmodels.TransactionFullStatusSuccessful
 	case models.PaymentTypeBalance:
-		if balance, err := GetUserBalance(userId); err == nil {
-			if finalCost >= math.MaxInt32 {
-				c.AbortWithError(http.StatusBadRequest, fmt.Errorf("final cost exceeds maximum allowed value"))
+		balance, err := libs.GetUserBalance(userId)
+		if err != nil {
+			if err.Error() == "user is restricted" {
+				c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"message": "user is restricted"})
 				return
 			}
-			if (*balance-int(finalCost) < 0) && !userTrust {
-				c.AbortWithError(http.StatusForbidden, fmt.Errorf("not enough balance"))
-				return
-			} else {
-				transactionStatus = sumupmodels.TransactionFullStatusSuccessful
-				UpdateUserBalance(userId, -int(finalCost))
-			}
-		} else if err.Error() == "user is restricted" {
-			c.AbortWithError(http.StatusForbidden, err)
+			fmt.Printf("error while getting user balance for purchase: user_id=%s final_cost=%d error=%s\n", userId, finalCost, err.Error())
+			c.AbortWithStatus(http.StatusInternalServerError)
 			return
-		} else {
-			c.AbortWithError(http.StatusInternalServerError, err)
+		}
+
+		if balance == nil {
+			fmt.Printf("error while getting user balance for purchase: user_id=%s final_cost=%d error=balance is nil\n", userId, finalCost)
+			c.AbortWithStatus(http.StatusInternalServerError)
+			return
+		}
+
+		if finalCost > math.MaxInt {
+			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"message": "Final cost exceeds maximum allowed value"})
+			return
+		}
+
+		cost := int(finalCost)
+
+		if cost > 0 && *balance < math.MinInt+cost {
+			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"message": "Balance calculation would underflow"})
+			return
+		}
+
+		remainingBalance = *balance - cost
+
+		if remainingBalance < 0 && !userTrust {
+			c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"message": "Not enough balance"})
+			return
+		}
+
+		transactionStatus = sumupmodels.TransactionFullStatusSuccessful
+		if err := libs.UpdateUserBalance(userId, -cost); err != nil {
+			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": "Error while updating user balance"})
 			return
 		}
 	}
 
-	purchase := models.Purchase{Items: returnedItemsArray, PaymentType: input.PaymentType, ClientTransactionId: clientTransactionId, TransactionStatus: transactionStatus, FinalCost: finalCost, RefundAmount: input.Amount, CreatedBy: userId}
-	models.DB.Create(&purchase)
-	if input.Amount != 0 {
-		UpdateUserBalance(userId, int(input.Amount))
+	purchase := models.Purchase{Items: returnedItemsArray, PaymentType: input.PaymentType, ClientTransactionId: clientTransactionId, TransactionStatus: transactionStatus, FinalCost: finalCost, RefundAmount: input.Amount, Profit: profit, RemainingBalance: remainingBalance, CreatedBy: userId}
+	if err := models.DB.Create(&purchase).Error; err != nil {
+		fmt.Printf("error while creating purchase: user_id=%s payment_type=%s final_cost=%d error=%s\n", userId, input.PaymentType, finalCost, err.Error())
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
 	}
 
+	purchase.Profit = 0 // omit from response
 	c.JSON(http.StatusOK, gin.H{"data": purchase})
 }
 
@@ -150,15 +200,28 @@ func FindPurchases(c *gin.Context) {
 	var purchases []models.Purchase
 	userClaims := jwt.ExtractClaims(c)
 	userId := uuid.MustParse(userClaims["userId"].(string))
+	isAdmin := userClaims["admin"].(bool)
 
 	limit := c.DefaultQuery("limit", "-1")
 	limitInt, err := strconv.Atoi(limit)
+
+	page := c.DefaultQuery("page", "1")
+	pageInt, err := strconv.Atoi(page)
+
+	offsetInt := (pageInt - 1) * limitInt
+
 	if err != nil {
-		c.AbortWithError(http.StatusBadRequest, err)
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-
-	models.DB.Where("created_by = ?", userId).Find(&purchases).Limit(limitInt)
+	if !isAdmin {
+		models.DB.Where("created_by = ?", userId).Order("created_at DESC").Limit(limitInt).Offset(offsetInt).Find(&purchases)
+		for i := range purchases {
+			purchases[i].Profit = 0 // do not return profit for non-admins
+		}
+	} else {
+		models.DB.Order("created_at DESC").Limit(limitInt).Offset(offsetInt).Find(&purchases)
+	}
 
 	c.Header("Content-Type", "application/json")
 	c.JSON(http.StatusOK, gin.H{"data": purchases})
@@ -185,60 +248,21 @@ func FindPurchase(c *gin.Context) {
 	var purchase models.Purchase
 	userClaims := jwt.ExtractClaims(c)
 	userId := uuid.MustParse(userClaims["userId"].(string))
+	isAdmin := userClaims["admin"].(bool)
 
-	if err := models.DB.Where("created_by = ?", userId).Where("purchase_id = ?", c.Param("id")).First(&purchase).Error; err != nil {
-		c.AbortWithStatus(http.StatusNotFound)
-		return
+	if !isAdmin {
+		if err := models.DB.Where("created_by = ?", userId).Where("purchase_id = ?", c.Param("id")).First(&purchase).Error; err != nil {
+			c.AbortWithStatus(http.StatusNotFound)
+			return
+		}
+		purchase.Profit = 0 // do not return profit for non-admins
+	} else {
+		if err := models.DB.Where("purchase_id = ?", c.Param("id")).First(&purchase).Error; err != nil {
+			c.AbortWithStatus(http.StatusNotFound)
+			return
+		}
 	}
 
 	c.Header("Content-Type", "application/json")
 	c.JSON(http.StatusOK, gin.H{"data": purchase})
 }
-
-/*type UpdatePurchaseInput struct {
-	Items       []models.Item `json:"items" binding:"required"`
-	PaymentType string        `json:"payment_type" binding:"required"`
-}
-
-func UpdatePurchase(c *gin.Context) {
-	var purchase models.Purchase
-	if err := models.DB.Where("purchase_id = ?", c.Param("id")).First(&purchase).Error; err != nil {
-		c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"error": "record not found"})
-		return
-	}
-
-	var input UpdatePurchaseInput
-	var finalCost uint = 0
-	returnArray := []models.Item{}
-
-	if err := c.ShouldBindJSON(&input); err != nil {
-		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
-
-	for _, v := range input.Items {
-		item := FindItemById(v.ItemId)
-		if item.Name == "No item found" {
-			c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"error": "itemid " + strconv.FormatUint(uint64(v.ItemId), 10) + " not found"})
-		}
-		finalCost += (item.Price * v.Quantity)
-		returnArray = append(returnArray, models.Item{ItemId: v.ItemId, Name: item.Name, Quantity: v.Quantity, Price: item.Price})
-	}
-
-	finalCost += input.Tip
-	updatedPurchase := models.Purchase{Items: returnArray, PaymentType: input.PaymentType, Tip: input.Tip, FinalCost: finalCost}
-
-	models.DB.Model(&purchase).Updates(&updatedPurchase)
-	c.JSON(http.StatusOK, gin.H{"data": purchase})
-}
-
-func DeletePurchase(c *gin.Context) {
-	var purchase models.Purchase
-	if err := models.DB.Where("purchase_id = ?", c.Param("id")).First(&purchase).Error; err != nil {
-		c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"error": "record not found"})
-		return
-	}
-
-	models.DB.Delete(&purchase)
-	c.JSON(http.StatusOK, gin.H{"data": "success"})
-}*/
