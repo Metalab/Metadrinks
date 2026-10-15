@@ -217,7 +217,8 @@ func FindPurchases(c *gin.Context) {
 	if !isAdmin {
 		models.DB.Where("created_by = ?", userId).Order("created_at DESC").Limit(limitInt).Offset(offsetInt).Find(&purchases)
 		for i := range purchases {
-			purchases[i].Profit = 0 // do not return profit for non-admins
+			purchases[i].Profit = 0   // do not return profit for non-admins
+			purchases[i].FeesPaid = 0 // do not return fee info for non-admins
 		}
 	} else {
 		models.DB.Order("created_at DESC").Limit(limitInt).Offset(offsetInt).Find(&purchases)
@@ -255,7 +256,8 @@ func FindPurchase(c *gin.Context) {
 			c.AbortWithStatus(http.StatusNotFound)
 			return
 		}
-		purchase.Profit = 0 // do not return profit for non-admins
+		purchase.Profit = 0   // do not return profit for non-admins
+		purchase.FeesPaid = 0 // do not return fee info for non-admins
 	} else {
 		if err := models.DB.Where("purchase_id = ?", c.Param("id")).First(&purchase).Error; err != nil {
 			c.AbortWithStatus(http.StatusNotFound)

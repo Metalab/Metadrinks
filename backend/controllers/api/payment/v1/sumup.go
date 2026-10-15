@@ -3,6 +3,7 @@ package v1
 import (
 	"context"
 	"fmt"
+	"math"
 	jwt "metalab/metadrinks/libs/auth"
 	"net/http"
 
@@ -308,7 +309,8 @@ func DeleteReader(c *gin.Context) {
 func GetIncomingWebhook(c *gin.Context) {
 	// After receiving a webhook call, your application must always verify if the event really took place, by calling a relevant SumUp's API.
 	var input sumupmodels.ReaderCheckoutStatusChange
-	var purchase models.Purchase
+	var purchase models.Purchase   // purchase from db
+	var insertData models.Purchase // contains values that will be updated in the db
 	var transactionValid bool
 	if err := c.ShouldBindJSON(&input); err != nil {
 		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -320,9 +322,7 @@ func GetIncomingWebhook(c *gin.Context) {
 		return
 	}
 
-	insertData := models.Purchase{TransactionStatus: input.Payload.Status}
 	fmt.Printf("incoming sumup webhook: %v\n", input.Payload)
-
 	if err := libs.ValidateTransactionState(input.Payload.ClientTransactionId, sumup.TransactionFullStatus(input.Payload.Status)); err != nil {
 		fmt.Printf("error while validating transaction state: %s\n", err.Error())
 		transactionValid = false
@@ -338,6 +338,19 @@ func GetIncomingWebhook(c *gin.Context) {
 	} else if !transactionValid {
 		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"message": "invalid transaction state"})
 		return
+	}
+
+	if transaction, err := libs.GetTransaction(input.Payload.ClientTransactionId); err != nil {
+		fmt.Printf("error while getting transaction: %s\n", err.Error())
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": "Error while getting transaction"})
+		return
+	} else {
+		//TODO: how does this behave with refunds?
+		var feesPaid = 0
+		if transaction.FeeAmount != nil || *transaction.FeeAmount == 0 {
+			feesPaid = int(math.Round(*transaction.FeeAmount * 100))
+		}
+		insertData = models.Purchase{TransactionStatus: input.Payload.Status, FeesPaid: feesPaid}
 	}
 
 	models.DB.Model(&purchase).Updates(insertData)

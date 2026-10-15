@@ -17,6 +17,7 @@ type Purchase struct {
 	FinalCost           uint                              `json:"final_cost"`                           // price the user pays
 	RefundAmount        uint                              `json:"refund_amount,omitempty"`              // adds balance to the user account
 	Profit              int                               `json:"profit,omitempty"`                     // profit from the purchase, can be negative
+	FeesPaid            int                               `json:"fees_paid,omitempty"`                  // fees paid by the merchant (used for sumup)
 	RemainingBalance    int                               `json:"remaining_balance,omitempty" gorm:"-"` //remaining balance after the purchase, can be negative (used in response, not db)
 	CreatedAt           time.Time                         `json:"created_at"`
 	CreatedBy           uuid.UUID                         `json:"created_by"` // uuid of user, otherwise null uuid (for guests)

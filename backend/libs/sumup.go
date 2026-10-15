@@ -118,8 +118,17 @@ func InitiallyCheckIfReaderIsReady(ReaderId string) (Result *sumupmodels.Reader,
 	return nil, fmt.Errorf("reader %s not ready after waiting %d seconds", ReaderId, count*secondsBetween)
 }
 
+func GetTransaction(ClientTransactionId string) (transaction *sumup.TransactionFull, Error error) {
+	apiTransaction, err := SumupClient.Transactions.Get(context.Background(), SumupMerchant.MerchantCode, sumup.TransactionsGetParams{ClientTransactionID: &ClientTransactionId})
+	if apiTransaction != nil && err == nil {
+		return apiTransaction, nil
+	}
+	return nil, err
+}
+
 func ValidateTransactionState(ClientTransactionId string, TransactionStatus sumup.TransactionFullStatus) (Error error) {
-	transaction, err := SumupClient.Transactions.Get(context.Background(), SumupMerchant.MerchantCode, sumup.TransactionsGetParams{ClientTransactionID: &ClientTransactionId})
+	//transaction, err := SumupClient.Transactions.Get(context.Background(), SumupMerchant.MerchantCode, sumup.TransactionsGetParams{ClientTransactionID: &ClientTransactionId})
+	transaction, err := GetTransaction(ClientTransactionId)
 	if transaction != nil && err == nil {
 		/*if transaction.Timestamp.Before(time.Now().Add(-24 * time.Hour)) {
 			return false, fmt.Errorf("transaction %s is too old", ClientTransactionId)
