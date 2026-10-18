@@ -1,23 +1,23 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"os"
 	"strings"
 
-	jwt "github.com/appleboy/gin-jwt/v2"
+	authLib "metalab/metadrinks/libs/auth"
+
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
 
 	"metalab/metadrinks/controllers/api"
 	"metalab/metadrinks/controllers/auth"
-	"metalab/metadrinks/controllers/payment"
 	"metalab/metadrinks/libs"
 	"metalab/metadrinks/models"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
-	"github.com/joho/godotenv"
 
 	_ "metalab/metadrinks/docs"
 )
@@ -32,28 +32,9 @@ import (
 //	@name						drinks_pos_session
 
 func main() {
-	err := godotenv.Load()
-	if err != nil {
-		log.Fatal("Error loading .env file")
-	}
-
-	enforcedVars := []string{
-		"SUMUP_API_KEY",
-		"SUMUP_RETURN_URL",
-		"JWT_SECRET",
-		"GIN_TRUSTED_PROXIES",
-		"CORS_ALLOWED_ORIGINS",
-		"DB_HOST",
-		"DB_USER",
-		"DB_PASSWORD",
-		"DB_DATABASE",
-		"DB_PORT",
-		"DB_TIMEZONE",
-	}
-	for _, v := range enforcedVars {
-		if os.Getenv(v) == "" {
-			panic("Environment variable " + v + " is not set. Please set it before running the application.")
-		}
+	if err := models.LoadEnvironmentVariables(); err != nil {
+		fmt.Printf("[ERROR] %s\n", err.Error())
+		os.Exit(1)
 	}
 
 	r := gin.Default()
@@ -74,10 +55,10 @@ func main() {
 
 	models.ConnectDatabase()
 
-	libs.Login(os.Getenv("SUMUP_API_KEY"))
+	libs.Login(os.Getenv("SUMUP_API_KEY"), os.Getenv("SUMUP_MERCHANT_ID"))
 	libs.InitAPIReaders()
 
-	authMiddleware, err := jwt.New(auth.InitParams())
+	authMiddleware, err := authLib.New(auth.InitParams())
 	if err != nil {
 		log.Fatal("JWT Error:" + err.Error())
 	}
@@ -86,7 +67,6 @@ func main() {
 
 	api.RegisterRoutesAPI(r.Group("/api"))
 	auth.RegisterRoutesAuth(r.Group("/auth"))
-	payment.RegisterRoutesPayment(r.Group("/payment"))
 
 	swaggerGroup := r.Group("/docs")
 	swaggerGroup.StaticFile("/swagger.json", "docs/swagger.json")

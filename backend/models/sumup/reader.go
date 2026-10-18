@@ -20,7 +20,7 @@ type Reader struct {
 	// a physical device.
 	// Min length: 30
 	// Max length: 30
-	ReaderId ReaderId `json:"id"`
+	ReaderId ReaderId `json:"id" gorm:"primaryKey;unique"`
 	// Set of user-defined key-value pairs attached to the object.
 	// Max properties: 50
 	Meta *Meta `json:"meta,omitempty" gorm:"type:bytes;serializer:json"`

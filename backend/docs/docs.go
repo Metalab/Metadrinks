@@ -432,7 +432,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/readers.CreateReaderBody"
+                            "$ref": "#/definitions/sumup.ReadersCreateParams"
                         }
                     }
                 ],
@@ -452,7 +452,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/readers/terminate": {
+        "/readers/terminate/{id}": {
             "delete": {
                 "description": "Stops the running reader checkout",
                 "consumes": [
@@ -467,13 +467,11 @@ const docTemplate = `{
                 "summary": "Terminate reader checkout",
                 "parameters": [
                     {
-                        "description": "Terminate reader input",
-                        "name": "reader",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/v1.TerminateReaderInput"
-                        }
+                        "type": "string",
+                        "description": "Reader ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
                     }
                 ],
                 "responses": {
@@ -557,7 +555,7 @@ const docTemplate = `{
         },
         "/users": {
             "get": {
-                "description": "Lists all users",
+                "description": "Lists all users except admins",
                 "consumes": [
                     "application/json"
                 ],
@@ -674,18 +672,46 @@ const docTemplate = `{
         "models.Item": {
             "type": "object",
             "properties": {
+                "amount": {
+                    "description": "do not write this to db - it is only used when creating a purchase",
+                    "type": "integer"
+                },
+                "barcodes": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "deleted_at": {
+                    "$ref": "#/definitions/gorm.DeletedAt"
+                },
                 "id": {
                     "type": "string",
                     "example": "00000000-0000-0000-0000-000000000000"
                 },
                 "image": {
-                    "type": "string",
-                    "default": "assets/empty.webp"
+                    "type": "string"
+                },
+                "is_active": {
+                    "type": "boolean"
                 },
                 "name": {
                     "type": "string"
                 },
+                "nutrition_info": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.NutritionInfo"
+                    }
+                },
                 "price": {
+                    "type": "integer"
+                },
+                "variant": {
+                    "type": "string"
+                },
+                "volume": {
+                    "description": "in ml",
                     "type": "integer"
                 }
             }
@@ -693,6 +719,21 @@ const docTemplate = `{
         "models.Meta": {
             "type": "object",
             "additionalProperties": {}
+        },
+        "models.NutritionInfo": {
+            "type": "object",
+            "required": [
+                "name",
+                "value"
+            ],
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "value": {
+                    "type": "string"
+                }
+            }
         },
         "models.PaymentType": {
             "type": "string",
@@ -729,7 +770,7 @@ const docTemplate = `{
                 "items": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/models.Item"
+                        "$ref": "#/definitions/models.PurchaseItem"
                     }
                 },
                 "payment_type": {
@@ -741,6 +782,29 @@ const docTemplate = `{
                 },
                 "status": {
                     "$ref": "#/definitions/models.TransactionFullStatus"
+                }
+            }
+        },
+        "models.PurchaseItem": {
+            "type": "object",
+            "properties": {
+                "amount": {
+                    "type": "integer"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "price": {
+                    "type": "integer"
+                },
+                "variant": {
+                    "type": "string"
+                },
+                "volume": {
+                    "type": "integer"
                 }
             }
         },
@@ -897,8 +961,7 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "image": {
-                    "type": "string",
-                    "default": "assets/empty.webp"
+                    "type": "string"
                 },
                 "is_active": {
                     "type": "boolean"
@@ -913,6 +976,9 @@ const docTemplate = `{
                 "is_trusted": {
                     "type": "boolean"
                 },
+                "login_barcode": {
+                    "type": "string"
+                },
                 "name": {
                     "type": "string"
                 },
@@ -924,14 +990,18 @@ const docTemplate = `{
                 }
             }
         },
-        "readers.CreateReaderBody": {
+        "sumup.Metadata": {
+            "type": "object",
+            "additionalProperties": {}
+        },
+        "sumup.ReadersCreateParams": {
             "type": "object",
             "properties": {
-                "meta": {
-                    "description": "Set of user-defined key-value pairs attached to the object.\nMax properties: 50",
+                "metadata": {
+                    "description": "Set of user-defined key-value pairs attached to the object. Partial updates are not supported. When updating, always\nsubmit whole metadata. Maximum of 64 parameters are allowed in the object.\nMax properties: 64",
                     "allOf": [
                         {
-                            "$ref": "#/definitions/readers.Meta"
+                            "$ref": "#/definitions/sumup.Metadata"
                         }
                     ]
                 },
@@ -945,24 +1015,43 @@ const docTemplate = `{
                 }
             }
         },
-        "readers.Meta": {
-            "type": "object",
-            "additionalProperties": {}
-        },
         "v1.CreateItemInput": {
             "type": "object",
             "required": [
                 "name",
-                "price"
+                "price",
+                "volume"
             ],
             "properties": {
+                "barcodes": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
                 "image": {
                     "type": "string"
+                },
+                "is_active": {
+                    "type": "boolean",
+                    "default": true
                 },
                 "name": {
                     "type": "string"
                 },
+                "nutrition_info": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.NutritionInfo"
+                    }
+                },
                 "price": {
+                    "type": "integer"
+                },
+                "variant": {
+                    "type": "string"
+                },
+                "volume": {
                     "type": "integer"
                 }
             }
@@ -980,13 +1069,39 @@ const docTemplate = `{
                 "items": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/models.Item"
+                        "$ref": "#/definitions/v1.PurchaseItemInput"
                     }
                 },
                 "payment_type": {
                     "$ref": "#/definitions/models.PaymentType"
                 },
                 "reader_id": {
+                    "type": "string"
+                }
+            }
+        },
+        "v1.CreateUserAdminInput": {
+            "type": "object",
+            "required": [
+                "name"
+            ],
+            "properties": {
+                "is_active": {
+                    "type": "boolean"
+                },
+                "is_admin": {
+                    "type": "boolean"
+                },
+                "is_restricted": {
+                    "type": "boolean"
+                },
+                "is_trusted": {
+                    "type": "boolean"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "password": {
                     "type": "string"
                 }
             }
@@ -1005,13 +1120,18 @@ const docTemplate = `{
                 }
             }
         },
-        "v1.TerminateReaderInput": {
+        "v1.PurchaseItemInput": {
             "type": "object",
+            "required": [
+                "amount",
+                "id"
+            ],
             "properties": {
-                "id": {
-                    "type": "string"
+                "amount": {
+                    "description": "quantity/amount from frontend",
+                    "type": "integer"
                 },
-                "name": {
+                "id": {
                     "type": "string"
                 }
             }

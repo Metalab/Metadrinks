@@ -9,19 +9,48 @@ definitions:
     type: object
   models.Item:
     properties:
+      amount:
+        description: do not write this to db - it is only used when creating a purchase
+        type: integer
+      barcodes:
+        items:
+          type: string
+        type: array
+      deleted_at:
+        $ref: '#/definitions/gorm.DeletedAt'
       id:
         example: 00000000-0000-0000-0000-000000000000
         type: string
       image:
-        default: assets/empty.webp
         type: string
+      is_active:
+        type: boolean
       name:
         type: string
+      nutrition_info:
+        items:
+          $ref: '#/definitions/models.NutritionInfo'
+        type: array
       price:
+        type: integer
+      variant:
+        type: string
+      volume:
+        description: in ml
         type: integer
     type: object
   models.Meta:
     additionalProperties: {}
+    type: object
+  models.NutritionInfo:
+    properties:
+      name:
+        type: string
+      value:
+        type: string
+    required:
+    - name
+    - value
     type: object
   models.PaymentType:
     enum:
@@ -48,7 +77,7 @@ definitions:
         type: string
       items:
         items:
-          $ref: '#/definitions/models.Item'
+          $ref: '#/definitions/models.PurchaseItem'
         type: array
       payment_type:
         $ref: '#/definitions/models.PaymentType'
@@ -57,6 +86,21 @@ definitions:
         type: integer
       status:
         $ref: '#/definitions/models.TransactionFullStatus'
+    type: object
+  models.PurchaseItem:
+    properties:
+      amount:
+        type: integer
+      id:
+        type: string
+      name:
+        type: string
+      price:
+        type: integer
+      variant:
+        type: string
+      volume:
+        type: integer
     type: object
   models.Reader:
     properties:
@@ -180,7 +224,6 @@ definitions:
       id:
         type: string
       image:
-        default: assets/empty.webp
         type: string
       is_active:
         type: boolean
@@ -191,6 +234,8 @@ definitions:
         type: boolean
       is_trusted:
         type: boolean
+      login_barcode:
+        type: string
       name:
         type: string
       password:
@@ -198,14 +243,18 @@ definitions:
       used_at:
         type: string
     type: object
-  readers.CreateReaderBody:
+  sumup.Metadata:
+    additionalProperties: {}
+    type: object
+  sumup.ReadersCreateParams:
     properties:
-      meta:
+      metadata:
         allOf:
-        - $ref: '#/definitions/readers.Meta'
+        - $ref: '#/definitions/sumup.Metadata'
         description: |-
-          Set of user-defined key-value pairs attached to the object.
-          Max properties: 50
+          Set of user-defined key-value pairs attached to the object. Partial updates are not supported. When updating, always
+          submit whole metadata. Maximum of 64 parameters are allowed in the object.
+          Max properties: 64
       name:
         description: |-
           Custom human-readable, user-defined name for easier identification of the reader.
@@ -219,20 +268,33 @@ definitions:
           Max length: 9
         type: string
     type: object
-  readers.Meta:
-    additionalProperties: {}
-    type: object
   v1.CreateItemInput:
     properties:
+      barcodes:
+        items:
+          type: string
+        type: array
       image:
         type: string
+      is_active:
+        default: true
+        type: boolean
       name:
         type: string
+      nutrition_info:
+        items:
+          $ref: '#/definitions/models.NutritionInfo'
+        type: array
       price:
+        type: integer
+      variant:
+        type: string
+      volume:
         type: integer
     required:
     - name
     - price
+    - volume
     type: object
   v1.CreatePurchaseInput:
     properties:
@@ -241,7 +303,7 @@ definitions:
         type: integer
       items:
         items:
-          $ref: '#/definitions/models.Item'
+          $ref: '#/definitions/v1.PurchaseItemInput'
         type: array
       payment_type:
         $ref: '#/definitions/models.PaymentType'
@@ -249,6 +311,23 @@ definitions:
         type: string
     required:
     - payment_type
+    type: object
+  v1.CreateUserAdminInput:
+    properties:
+      is_active:
+        type: boolean
+      is_admin:
+        type: boolean
+      is_restricted:
+        type: boolean
+      is_trusted:
+        type: boolean
+      name:
+        type: string
+      password:
+        type: string
+    required:
+    - name
     type: object
   v1.CreateUserInput:
     properties:
@@ -259,12 +338,16 @@ definitions:
     required:
     - name
     type: object
-  v1.TerminateReaderInput:
+  v1.PurchaseItemInput:
     properties:
+      amount:
+        description: quantity/amount from frontend
+        type: integer
       id:
         type: string
-      name:
-        type: string
+    required:
+    - amount
+    - id
     type: object
   v1.UnlinkReaderInput:
     properties:
@@ -569,7 +652,7 @@ paths:
         name: user
         required: true
         schema:
-          $ref: '#/definitions/readers.CreateReaderBody'
+          $ref: '#/definitions/sumup.ReadersCreateParams'
       produces:
       - application/json
       responses:
@@ -584,18 +667,17 @@ paths:
       summary: Create reader
       tags:
       - sumup
-  /readers/terminate:
+  /readers/terminate/{id}:
     delete:
       consumes:
       - application/json
       description: Stops the running reader checkout
       parameters:
-      - description: Terminate reader input
-        in: body
-        name: reader
+      - description: Reader ID
+        in: path
+        name: id
         required: true
-        schema:
-          $ref: '#/definitions/v1.TerminateReaderInput'
+        type: string
       produces:
       - application/json
       responses:
@@ -632,7 +714,7 @@ paths:
     get:
       consumes:
       - application/json
-      description: Lists all users
+      description: Lists all users except admins
       produces:
       - application/json
       responses:
