@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"math"
+	v1 "metalab/metadrinks/controllers/api/admin/v1"
 	jwt "metalab/metadrinks/libs/auth"
 	"net/http"
 
@@ -274,23 +275,28 @@ func DeleteReader(c *gin.Context) {
 		return
 	}
 
-	var settings models.Settings
+	/*var settings models.Settings
 	if err := models.DB.Where("id = ?", 1).First(&settings).Error; err != nil {
 		c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"error": "record not found"})
 		return
-	}
+	}*/
 
-	if settings.DefaultReaderId != nil && *settings.DefaultReaderId == string(reader.ReaderId) {
-		updatedSettings := models.Settings{MaintenanceMode: settings.MaintenanceMode, DefaultReaderId: nil}
-		models.DB.Model(&settings).Updates(&updatedSettings)
+	if settings, err := v1.GetSettings(); err != nil {
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	} else {
+		if settings.DefaultReaderId != nil && *settings.DefaultReaderId == string(reader.ReaderId) {
+			updatedSettings := models.Settings{MaintenanceMode: settings.MaintenanceMode, DefaultReaderId: nil}
+			models.DB.Model(&settings).Updates(&updatedSettings)
 
-		if libs.HandleSSENotificationError(c, libs.SendSSEContentUpdateNotification("settings")) {
-			return
+			if libs.HandleSSENotificationError(c, libs.SendSSEContentUpdateNotification("settings")) {
+				return
+			}
 		}
-	}
-	models.DB.Where("reader_id = ?", reader.ReaderId).Delete(&reader)
+		models.DB.Where("reader_id = ?", reader.ReaderId).Delete(&reader)
 
-	c.JSON(http.StatusOK, gin.H{"data": "success"})
+		c.JSON(http.StatusOK, gin.H{"data": "success"})
+	}
 }
 
 // GetIncomingWebhook godoc

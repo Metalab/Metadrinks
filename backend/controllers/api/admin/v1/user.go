@@ -93,7 +93,7 @@ type UpdateUserInput struct {
 	Password     string `json:"password,omitempty"`
 	LoginBarcode string `json:"login_barcode,omitempty"`
 	Image        string `json:"image,omitempty"`
-	Balance      *int   `json:"balance,omitempty"`
+	Balance      int    `json:"balance,omitempty"`
 	IsTrusted    *bool  `json:"is_trusted,omitempty"`
 	IsAdmin      *bool  `json:"is_admin,omitempty"`
 	IsActive     *bool  `json:"is_active,omitempty"`

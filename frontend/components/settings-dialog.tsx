@@ -49,10 +49,14 @@ export default function SettingsDialog({
   onOpenChange: controlledOnOpenChange,
 }: SettingsDialogProps = {}) {
   const { user } = useUser();
-  const { maintenanceMode, isEnvMaintenance, refreshSettings } = useSettings();
+  const { maintenanceMode, isEnvMaintenance, settings, refreshSettings } =
+    useSettings();
   const { theme, setTheme } = useTheme();
   const [internalOpen, setInternalOpen] = React.useState(false);
   const [updating, setUpdating] = React.useState(false);
+  const [updatingBalance, setUpdatingBalance] = React.useState(false);
+  const [minBalance, setMinBalance] = React.useState("0");
+  const [maxBalance, setMaxBalance] = React.useState("0");
   const [loginBarcode, setLoginBarcode] = React.useState<string>("");
   const [refreshingBarcode, setRefreshingBarcode] = React.useState(false);
   const barcodeCanvasRef = React.useRef<HTMLCanvasElement>(null);
@@ -64,6 +68,11 @@ export default function SettingsDialog({
     : setInternalOpen;
 
   const isAdmin = user?.is_admin;
+
+  React.useEffect(() => {
+    setMinBalance(String(settings?.balance_settings?.min ?? 0));
+    setMaxBalance(String(settings?.balance_settings?.max ?? 0));
+  }, [settings?.balance_settings?.min, settings?.balance_settings?.max]);
 
   React.useEffect(() => {
     if (loginBarcode && barcodeCanvasRef.current) {
@@ -149,6 +158,68 @@ export default function SettingsDialog({
     } finally {
       setRefreshingBarcode(false);
     }
+  };
+
+  const updateBalanceSettings = async (
+    balanceSettings: { enabled?: boolean; min?: number; max?: number },
+    successMessage: string,
+  ) => {
+    setUpdatingBalance(true);
+    try {
+      const res = await fetch(`${config.apiBaseUrl}/api/admin/v1/settings`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ balance_settings: balanceSettings }),
+      });
+
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || "Failed to update balance settings");
+      }
+
+      await refreshSettings();
+      toast.success(successMessage);
+    } catch (error) {
+      console.error("Failed to update balance settings:", error);
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "Failed to update balance settings",
+      );
+    } finally {
+      setUpdatingBalance(false);
+    }
+  };
+
+  const handleBalanceToggle = async (enabled: boolean) => {
+    await updateBalanceSettings(
+      { enabled },
+      `Balance ${enabled ? "enabled" : "disabled"} successfully`,
+    );
+  };
+
+  const handleBalanceLimits = async () => {
+    const min = Number(minBalance);
+    const max = Number(maxBalance);
+
+    if (
+      !Number.isInteger(min) ||
+      !Number.isInteger(max) ||
+      min < 0 ||
+      max < 0 ||
+      (max !== 0 && max < min)
+    ) {
+      toast.error(
+        "Enter valid non-negative limits; max must be 0 or at least min",
+      );
+      return;
+    }
+
+    await updateBalanceSettings(
+      { min, max },
+      "Balance limits updated successfully",
+    );
   };
 
   return (
@@ -275,6 +346,15 @@ export default function SettingsDialog({
                   </Alert>
                 )}
 
+                {maintenanceMode && (
+                  <Alert>
+                    <AlertDescription className="text-xs">
+                      ⚠️ Non-admin users are currently seeing the maintenance
+                      page
+                    </AlertDescription>
+                  </Alert>
+                )}
+
                 <div className="flex items-center justify-between space-x-2">
                   <div className="space-y-0.5">
                     <Label htmlFor="maintenance-toggle" className="text-sm">
@@ -295,14 +375,59 @@ export default function SettingsDialog({
                   )}
                 </div>
 
-                {maintenanceMode && (
-                  <Alert>
-                    <AlertDescription className="text-xs">
-                      ⚠️ Non-admin users are currently seeing the maintenance
-                      page
-                    </AlertDescription>
-                  </Alert>
-                )}
+                <div className="flex items-center justify-between space-x-2">
+                  <div className="space-y-0.5">
+                    <Label htmlFor="balance-toggle" className="text-sm">
+                      Balance Payments
+                    </Label>
+                    <div className="text-xs text-muted-foreground">
+                      Allow users to pay with their account balance
+                    </div>
+                  </div>
+                  <Switch
+                    id="balance-toggle"
+                    checked={settings?.balance_settings?.enabled ?? true}
+                    onCheckedChange={handleBalanceToggle}
+                    disabled={updatingBalance}
+                  />
+                  {updatingBalance && (
+                    <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                  )}
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="text-sm">Balance Limits (cents)</Label>
+                  <div className="grid grid-cols-2 gap-2">
+                    <Input
+                      id="minimum-balance"
+                      type="number"
+                      min="0"
+                      value={minBalance}
+                      onChange={(event) => setMinBalance(event.target.value)}
+                      placeholder="Minimum"
+                      disabled={updatingBalance}
+                    />
+                    <Input
+                      id="maximum-balance"
+                      type="number"
+                      min="0"
+                      value={maxBalance}
+                      onChange={(event) => setMaxBalance(event.target.value)}
+                      placeholder="Maximum"
+                      disabled={updatingBalance}
+                    />
+                  </div>
+                  <Button
+                    variant="outline"
+                    onClick={handleBalanceLimits}
+                    disabled={updatingBalance}
+                  >
+                    Save Balance Limits
+                  </Button>
+                  <p className="text-xs text-muted-foreground">
+                    Use 0 to disable either limit.
+                  </p>
+                </div>
               </div>
             </>
           )}

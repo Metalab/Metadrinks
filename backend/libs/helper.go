@@ -14,23 +14,38 @@ import (
 	"github.com/google/uuid"
 )
 
-func GetUserBalance(userId uuid.UUID) (*int, error) {
+func GetUserBalance(userId uuid.UUID) (int, error) {
 	var user models.User
 
 	if err := models.DB.Where("user_id = ?", userId).First(&user).Error; err != nil {
-		return nil, err
+		return 0, err
 	}
 
 	if *user.IsRestricted {
-		return nil, fmt.Errorf("user is restricted")
+		return 0, fmt.Errorf("user is restricted")
 	}
 
 	return user.Balance, nil
 }
 
+// GetUserBalanceOrAbort fetches the balance for a user. If an error occurs,
+// it aborts the context with the appropriate HTTP status and returns ok=false.
+func GetUserBalanceOrAbort(c *gin.Context, userId uuid.UUID) (int, bool) {
+	balance, err := GetUserBalance(userId)
+	if err != nil {
+		if err.Error() == "user is restricted" {
+			c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"message": "user is restricted"})
+			return 0, false
+		}
+		fmt.Printf("error while getting user balance: user_id=%s error=%s\n", userId, err.Error())
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return 0, false
+	}
+	return balance, true
+}
+
 func UpdateUserBalance(userId uuid.UUID, change int) error {
 	var user models.User
-	changePtr := &change
 
 	if err := models.DB.Where("user_id = ?", userId).First(&user).Error; err != nil {
 		return fmt.Errorf("failed to find user: %w", err)
@@ -40,8 +55,7 @@ func UpdateUserBalance(userId uuid.UUID, change int) error {
 		return fmt.Errorf("user is restricted")
 	}
 
-	balancePtr := *user.Balance + *changePtr
-	user.Balance = &balancePtr
+	user.Balance = user.Balance + change
 	models.DB.Save(&user)
 	return nil
 }

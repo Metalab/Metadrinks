@@ -3,6 +3,7 @@ package v1
 import (
 	"fmt"
 	"math"
+	v1 "metalab/metadrinks/controllers/api/admin/v1"
 	"net/http"
 	"strconv"
 	"strings"
@@ -57,32 +58,68 @@ func CreatePurchase(c *gin.Context) {
 	var finalCost uint = 0
 	var profit = 0
 	var remainingBalance = 0
+	var balance = 0
 	clientTransactionId := ""
 	var transactionDescription []string
 	var transactionStatus sumupmodels.TransactionFullStatus
 	var returnedItemsArray []models.PurchaseItem
+	var balanceSettings models.BalanceSettings
 	userClaims := jwt.ExtractClaims(c)
 	userId := uuid.MustParse(userClaims["userId"].(string))
-	userTrust := userClaims["trusted"].(bool)
+	userTrusted := userClaims["trusted"].(bool)
+	userRestricted := userClaims["restricted"].(bool)
 
 	if err := c.ShouldBindJSON(&input); err != nil {
 		c.AbortWithStatus(http.StatusBadRequest)
 		return
 	}
 
-	if input.Amount != 0 && len(input.Items) != 0 {
-		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"message": "Only one of 'items' and 'amount' can be specified"})
-		return
-	}
+	if input.Amount != 0 {
+		if len(input.Items) != 0 {
+			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"message": "Only one of 'items' and 'amount' can be specified"})
+			return
+		}
+		if input.PaymentType == models.PaymentTypeBalance {
+			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"message": "Balance payment type cannot be used with amount"})
+			return
+		}
+		if userRestricted {
+			c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"message": "User is restricted"})
+			return
+		}
 
-	if input.Amount != 0 && input.PaymentType == models.PaymentTypeBalance {
-		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"message": "Balance payment type cannot be used with amount"})
-		return
-	}
+		settings, err := v1.GetSettings()
+		if err != nil {
+			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+		balanceSettings = settings.BalanceSettings
 
-	if input.Amount != 0 && userClaims["restricted"].(bool) {
-		c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"message": "User is restricted"})
-		return
+		if !balanceSettings.IsEnabled {
+			c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"message": "Balance is disabled"})
+			return
+		}
+
+		var ok bool
+		balance, ok = libs.GetUserBalanceOrAbort(c, userId)
+		if !ok {
+			return
+		}
+
+		if input.Amount != 0 && balanceSettings.MaxBalance != 0 {
+			if balance+int(input.Amount) > balanceSettings.MaxBalance {
+				maxAddable := balanceSettings.MaxBalance - balance
+				if maxAddable < 0 {
+					maxAddable = 0
+				} else {
+					maxAddable /= 100
+				}
+				c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
+					"message": fmt.Sprintf("Maximum balance exceeded. You can add €%d", maxAddable),
+				})
+				return
+			}
+		}
 	}
 
 	for _, v := range input.Items {
@@ -108,7 +145,7 @@ func CreatePurchase(c *gin.Context) {
 	case models.PaymentTypeCard:
 		if finalCost == 0 && input.Amount != 0 {
 			finalCost = input.Amount
-			finalTransactionDescription = fmt.Sprintf("Balance top-up of €%d", input.Amount)
+			finalTransactionDescription = fmt.Sprintf("Balance top-up of €%d", input.Amount/100)
 		}
 		var err error
 		transactionStatus = sumupmodels.TransactionFullStatusPending
@@ -128,20 +165,9 @@ func CreatePurchase(c *gin.Context) {
 		}
 		transactionStatus = sumupmodels.TransactionFullStatusSuccessful
 	case models.PaymentTypeBalance:
-		balance, err := libs.GetUserBalance(userId)
-		if err != nil {
-			if err.Error() == "user is restricted" {
-				c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"message": "user is restricted"})
-				return
-			}
-			fmt.Printf("error while getting user balance for purchase: user_id=%s final_cost=%d error=%s\n", userId, finalCost, err.Error())
-			c.AbortWithStatus(http.StatusInternalServerError)
-			return
-		}
-
-		if balance == nil {
-			fmt.Printf("error while getting user balance for purchase: user_id=%s final_cost=%d error=balance is nil\n", userId, finalCost)
-			c.AbortWithStatus(http.StatusInternalServerError)
+		var ok bool
+		balance, ok = libs.GetUserBalanceOrAbort(c, userId)
+		if !ok {
 			return
 		}
 
@@ -152,14 +178,14 @@ func CreatePurchase(c *gin.Context) {
 
 		cost := int(finalCost)
 
-		if cost > 0 && *balance < math.MinInt+cost {
-			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"message": "Balance calculation would underflow"})
+		if cost > 0 && balance < math.MinInt+cost {
+			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"message": "Balance calculation underflow"})
 			return
 		}
 
-		remainingBalance = *balance - cost
+		remainingBalance = balance - cost
 
-		if remainingBalance < 0 && !userTrust {
+		if remainingBalance < 0 && !userTrusted {
 			c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"message": "Not enough balance"})
 			return
 		}

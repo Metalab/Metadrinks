@@ -48,11 +48,11 @@ func ConnectDatabase() {
 			return
 		}
 		database.Create(&User{UserID: uuid.Nil, Name: "a-admin", Password: hashedPassword, IsAdmin: BoolPointer(true), IsTrusted: BoolPointer(false), IsRestricted: BoolPointer(false), UsedAt: time.Now().Local()})
-		fmt.Printf("\n[INFO] Created default admin user with password %s\n", key)
+		fmt.Printf("\n[INFO] Created default admin user a-admin with password %s\n", key)
 	}
 
 	if database.Where("id = ?", 1).Find(&Settings{}).RowsAffected == 0 {
-		database.Create(&Settings{ID: 1, MaintenanceMode: BoolPointer(false), MerchantInfo: nil})
+		database.Create(&Settings{ID: 1, MaintenanceMode: BoolPointer(false), MerchantInfo: nil, BalanceSettings: BalanceSettings{true, 0, 0}})
 		fmt.Println("[INFO] Created default settings")
 	}
 

@@ -22,7 +22,7 @@ interface SettingsContextType {
 }
 
 const SettingsContext = createContext<SettingsContextType | undefined>(
-  undefined
+  undefined,
 );
 
 export function SettingsProvider({ children }: { children: React.ReactNode }) {
@@ -33,15 +33,19 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
   const { user } = useUser();
   const hasFetchedRef = useRef(false);
   const lastAdminStatusRef = useRef<boolean | undefined>(undefined);
+  const fetchingSettingsRef = useRef(false);
+  const lastFetchStartedAtRef = useRef(0);
 
   const fetchSettings = useCallback(async () => {
+    fetchingSettingsRef.current = true;
+    lastFetchStartedAtRef.current = Date.now();
     try {
       const endpoint = user?.is_admin
         ? `${config.apiBaseUrl}/api/admin/v1/settings`
         : `${config.apiBaseUrl}/api/v1/settings`;
 
       console.log(
-        `Fetching settings from: ${endpoint} (is_admin: ${user?.is_admin})`
+        `Fetching settings from: ${endpoint} (is_admin: ${user?.is_admin})`,
       );
 
       const res = await fetch(endpoint, {
@@ -60,6 +64,7 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
       console.error("Error fetching settings:", error);
       setSettings({ maintenance: false });
     } finally {
+      fetchingSettingsRef.current = false;
       setLoading(false);
     }
   }, [user?.is_admin]);
@@ -79,6 +84,13 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     const handleSettingsUpdate = async () => {
+      if (
+        fetchingSettingsRef.current ||
+        Date.now() - lastFetchStartedAtRef.current < 1000
+      ) {
+        return;
+      }
+
       console.log("Settings updated via SSE, fetching latest settings...");
       try {
         const endpoint = user?.is_admin
@@ -86,7 +98,7 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
           : `${config.apiBaseUrl}/api/v1/settings`;
 
         console.log(
-          `Fetching settings via SSE from: ${endpoint} (is_admin: ${user?.is_admin})`
+          `Fetching settings via SSE from: ${endpoint} (is_admin: ${user?.is_admin})`,
         );
 
         const res = await fetch(endpoint, {
@@ -100,7 +112,7 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
         } else {
           console.error(
             "Failed to fetch settings after SSE update:",
-            res.status
+            res.status,
           );
         }
       } catch (error) {
