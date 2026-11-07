@@ -70,6 +70,7 @@ jobs:
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           tags: |
+            type=raw,prefix=frontend-,value=latest,enable=${{ github.event_name != 'pull_request' }}
             type=ref,prefix=frontend-,event=branch
             type=ref,prefix=frontend-,event=tag
             type=ref,prefix=frontend-pr-,event=pr

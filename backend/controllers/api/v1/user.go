@@ -2,6 +2,8 @@ package v1
 
 import (
 	"fmt"
+	"metalab/metadrinks/libs"
+	jwt "metalab/metadrinks/libs/auth"
 	"metalab/metadrinks/libs/crypto"
 	"net/http"
 	"time"
@@ -38,6 +40,11 @@ func CreateUser(c *gin.Context) {
 		return
 	}
 
+	if len(input.Name) > 24 {
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "name must not be longer than 24 characters"})
+		return
+	}
+
 	userId := uuid.New()
 
 	hashedPassword, err := crypto.HashPasswordSecure(input.Password) //bcrypt.GenerateFromPassword([]byte(input.Password), bcrypt.DefaultCost)
@@ -45,16 +52,23 @@ func CreateUser(c *gin.Context) {
 		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
+
 	user := models.User{UserID: userId, Name: input.Name, Password: hashedPassword, UsedAt: time.Now().Local()}
 	models.DB.Create(&user)
 
+	user.Password = ""
+	user.LoginBarcode = ""
+
+	if libs.HandleSSENotificationError(c, libs.SendSSEContentUpdateNotification("users")) {
+		return
+	}
 	c.JSON(http.StatusOK, gin.H{"data": user})
 }
 
 // FindUsers godoc
 //
 //	@Summary		Find users
-//	@Description	Lists all users
+//	@Description	Lists all users except admins
 //	@Tags			users
 //	@Accept			json
 //	@Produce		json
@@ -65,10 +79,12 @@ func CreateUser(c *gin.Context) {
 //	@Router			/users [get]
 func FindUsers(c *gin.Context) {
 	var users []models.User
-	models.DB.Order("used_at DESC").Find(&users)
+
+	models.DB.Where("is_admin = false").Order("used_at DESC").Find(&users)
 
 	for i := range users { // do not return the user password
 		users[i].Password = ""
+		users[i].LoginBarcode = ""
 	}
 
 	c.Header("Content-Type", "application/json")
@@ -97,34 +113,91 @@ func FindUser(c *gin.Context) {
 	}
 
 	user.Password = ""
+	user.LoginBarcode = ""
 	c.Header("Content-Type", "application/json")
 	c.JSON(http.StatusOK, gin.H{"data": user})
 }
 
 type UpdateUserInput struct {
-	Name string `json:"name" binding:"required"`
+	OldPassword          string `json:"old_password,omitempty"`
+	Password             string `json:"password,omitempty"`
+	GenerateLoginBarcode *bool  `json:"generate_login_barcode,omitempty"`
 }
 
-/*func UpdateUser(c *gin.Context) {
-	var user models.Item
-	if err := models.DB.Where("user_id = ?", c.Param("id")).First(&user).Error; err != nil {
-		c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"error": "record not found"})
-		return
-	}
-
+func UpdateUser(c *gin.Context) {
 	var input UpdateUserInput
+	var loginBarcode = ""
+	userClaims := jwt.ExtractClaims(c)
+	userId := uuid.MustParse(userClaims["userId"].(string))
+	userRestricted := userClaims["restricted"].(bool)
 	if err := c.ShouldBindJSON(&input); err != nil {
 		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	updatedUser := models.User{Name: input.Name}
+	if userRestricted {
+		c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"error": "user is restricted"})
+		return
+	}
+
+	if uId, err := uuid.Parse(c.Param("id")); err != nil {
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	} else if userId != uId {
+		c.AbortWithStatus(http.StatusForbidden)
+		return
+	}
+
+	var user models.User
+	if err := models.DB.Where("user_id = ?", c.Param("id")).First(&user).Error; err != nil {
+		c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"error": "record not found"})
+		return
+	}
+
+	if input.Password != "" {
+		if input.OldPassword == "" {
+			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "old_password cannot be empty"})
+			return
+		}
+
+		if err := crypto.AuthenticateUser(user.Password, input.OldPassword); err != nil {
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "old_password does not match"})
+			return
+		}
+
+		hashedPassword, err := crypto.HashPasswordSecure(input.Password)
+		if err != nil {
+			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+		input.Password = hashedPassword
+	}
+
+	if input.GenerateLoginBarcode != nil && *input.GenerateLoginBarcode == true {
+		generatedBarcode, err := libs.GenerateSecureEAN13()
+		if err != nil {
+			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("failed to generate barcode: %s", err.Error())})
+			return
+		}
+		loginBarcode = generatedBarcode
+	}
+
+	updatedUser := models.User{Password: input.Password, LoginBarcode: loginBarcode}
 
 	models.DB.Model(&user).Updates(&updatedUser)
+
+	user.Password = ""
+	if loginBarcode == "" {
+		user.LoginBarcode = ""
+	}
+
+	if libs.HandleSSENotificationError(c, libs.SendSSEContentUpdateNotification("users")) {
+		return
+	}
 	c.JSON(http.StatusOK, gin.H{"data": user})
 }
 
-func DeleteUser(c *gin.Context) {
+/*func DeleteUser(c *gin.Context) {
 	var user models.User
 	if err := models.DB.Where("user_id = ?", c.Param("id")).First(&user).Error; err != nil {
 		c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"error": "record not found"})
@@ -167,28 +240,3 @@ func DeleteUser(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{"data": user})
 	}
 */
-
-func GetUserBalance(userId uuid.UUID) (*int, error) {
-	var user models.User
-
-	if err := models.DB.Where("user_id = ?", userId).First(&user).Error; err != nil {
-		return nil, err
-	}
-
-	if user.IsRestricted {
-		return nil, fmt.Errorf("user is restricted")
-	}
-
-	return &user.Balance, nil
-}
-
-func UpdateUserBalance(userId uuid.UUID, change int) {
-	var user models.User
-
-	if err := models.DB.Where("user_id = ?", userId).First(&user).Error; err != nil {
-		return
-	}
-
-	user.Balance = user.Balance + change
-	models.DB.Save(&user)
-}

@@ -1,6 +1,7 @@
 package v1
 
 import (
+	adminv1 "metalab/metadrinks/controllers/api/admin/v1"
 	"metalab/metadrinks/controllers/auth"
 
 	"github.com/gin-gonic/gin"
@@ -18,7 +19,7 @@ func RegisterRoutesV1(r *gin.RouterGroup) {
 	u.POST("", CreateUser)
 	u.GET("", FindUsers)
 	u.GET("/:id", FindUser)
-	//u.PUT("/:id", auth.JWTAuthMiddleware.MiddlewareFunc(), auth.IsUserAdmin(), UpdateUser)
+	u.PUT("/:id", auth.JWTAuthMiddleware.MiddlewareFunc(), UpdateUser)
 	//u.DELETE("//:id", auth.JWTAuthMiddleware.MiddlewareFunc(), auth.IsUserAdmin(), DeleteUser)
 
 	p := r.Group("purchases")
@@ -27,4 +28,9 @@ func RegisterRoutesV1(r *gin.RouterGroup) {
 	p.GET("/:id", auth.JWTAuthMiddleware.MiddlewareFunc(), FindPurchase)
 	//p.PATCH("/:id", UpdatePurchase)
 	//p.DELETE("/:id", DeletePurchase)
+
+	s := r.Group("settings")
+	s.GET("", adminv1.FindSettings)
+
+	r.GET("/ready", GetReadiness)
 }
