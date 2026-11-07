@@ -353,7 +353,7 @@ func GetIncomingWebhook(c *gin.Context) {
 	} else {
 		//TODO: how does this behave with refunds?
 		var feesPaid = 0
-		if transaction.FeeAmount != nil || *transaction.FeeAmount == 0 {
+		if transaction.FeeAmount != nil && *transaction.FeeAmount != 0 {
 			feesPaid = int(math.Round(*transaction.FeeAmount * 100))
 		}
 		insertData = models.Purchase{TransactionStatus: input.Payload.Status, FeesPaid: feesPaid}
